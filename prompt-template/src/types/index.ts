@@ -1,10 +1,10 @@
 export interface Template {
-  id: string;
+  id: number;
   name: string;
   content: string;
 }
 
 export interface StorageData {
   templates: Template[];
-  triggerCommand: string;
+  shortcutKey: string;
 }
