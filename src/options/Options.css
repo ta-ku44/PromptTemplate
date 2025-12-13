@@ -44,7 +44,7 @@ body {
 }
 
 .options-header h1 {
-  font-size: 24px;
+  font-size: 40px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -140,8 +140,17 @@ body {
   opacity: 1;
 }
 
+.drag-handle:hover .drag-handle-dot {
+  background-color: var(--accent-color);
+}
+
 .drag-handle:active {
   cursor: grabbing;
+  opacity: 1;
+}
+
+.drag-handle:active .drag-handle-dot {
+  background-color: var(--accent-color);
 }
 
 .drag-handle-dots {
@@ -154,6 +163,7 @@ body {
   height: 3px;
   background-color: var(--text-secondary);
   border-radius: 50%;
+  transition: background-color 0.2s;
 }
 
 /* Expand Button */
@@ -181,15 +191,19 @@ body {
 
 /* Group Name */
 .group-name {
+  flex: 1;
   font-size: 15px;
   font-weight: 500;
   color: var(--text-primary);
+}
+
+.group-name-text {
   cursor: text;
 }
 
-/* Spacer to push actions to the right */
+/* Spacer - not needed when group-name has flex: 1 */
 .group-header-spacer {
-  flex: 1;
+  display: none;
 }
 
 .group-name-input {
@@ -246,6 +260,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
 }
 
 /* Template Item */
@@ -256,7 +271,6 @@ body {
   padding: 8px 12px;
   background-color: var(--bg-tertiary);
   border-radius: 6px;
-  transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 .template-item.dragging {
@@ -271,7 +285,14 @@ body {
 .template-item.drag-overlay {
   background-color: var(--bg-tertiary);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  opacity: 0.95;
+}
+
+.template-item.drag-overlay .drag-handle {
+  opacity: 1;
+}
+
+.template-item.drag-overlay .drag-handle-dot {
+  background-color: var(--accent-color);
 }
 
 /* Template dragging state - blue highlight */
@@ -283,6 +304,17 @@ body {
 /* Template wrapper for drop target line */
 .template-wrapper {
   position: relative;
+}
+
+/* Dragging state - show placeholder outline */
+.template-wrapper.is-dragging .template-item {
+  background-color: #3a3a38;
+  border: 1px solid var(--border-color);
+  box-shadow: none;
+}
+
+.template-wrapper.is-dragging .template-item > * {
+  visibility: hidden;
 }
 
 .template-wrapper.drop-target-line-before::before {
@@ -311,15 +343,55 @@ body {
   z-index: 10;
 }
 
-/* Empty group drop target */
-.templates-container.drop-target::before {
-  content: '';
-  display: block;
+/* Group drop target */
+.templates-container.group-drop-target {
+  background-color: rgba(74, 158, 255, 0.1);
+  border-radius: var(--border-radius);
+}
+
+/* Drop line at top of group */
+.drop-line-top {
+  position: absolute;
+  top: 3px;
+  left: 32px;
+  right: 16px;
   height: 2px;
   background-color: var(--accent-color);
   box-shadow: 0 0 4px var(--accent-color);
   border-radius: 2px;
-  margin-bottom: 8px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Add template button wrapper */
+.add-template-wrapper {
+  position: relative;
+}
+
+/* Drop line at bottom of group */
+.drop-line-bottom {
+  position: absolute;
+  top: -5px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--accent-color);
+  box-shadow: 0 0 4px var(--accent-color);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Drag overlay - follows cursor */
+.template-item.drag-overlay {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--accent-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  cursor: grabbing;
+}
+
+.template-item.drag-overlay .drag-handle .dot {
+  background-color: var(--accent-color);
 }
 
 /* Name required indicator (red asterisk) */
@@ -424,10 +496,30 @@ body {
 }
 
 .modal-field label {
-  display: block;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
   font-size: 13px;
   color: var(--text-secondary);
   margin-bottom: 6px;
+}
+
+.modal-field .required-mark {
+  color: var(--danger-color);
+  font-size: 10px;
+  position: relative;
+  top: -0.25px;
+}
+
+.modal-field.error input {
+  border-color: var(--danger-color);
+}
+
+.modal-field .error-message {
+  display: block;
+  color: var(--danger-color);
+  font-size: 12px;
+  margin-top: 4px;
 }
 
 .modal-field input,
@@ -490,6 +582,13 @@ body {
   background-color: var(--accent-hover);
 }
 
+.modal-btn.save.disabled,
+.modal-btn.save:disabled {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;
@@ -508,14 +607,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: #6a6a68;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: #8a8a88;
 }

@@ -69,7 +69,7 @@ export const saveGroups = async (groups: Group[]): Promise<void> => {
   await browser.storage.sync.set({ data: { ...data, groups } });
 }
 
-export const addGroup = async (group: Omit<Group, 'id' | 'order'>): Promise<void> => {
+export const addGroup = async (group: Omit<Group, 'id' | 'order'>): Promise<number> => {
   const data = await loadStoredData();
   const maxId = data.groups.reduce((max, g) => Math.max(max, g.id), 0);
   const maxOrder = data.groups.reduce((max, g) => Math.max(max, g.order), 0);
@@ -79,6 +79,7 @@ export const addGroup = async (group: Omit<Group, 'id' | 'order'>): Promise<void
     order: maxOrder + 1,
   };
   await saveGroups([...data.groups, newGroup]);
+  return newGroup.id;
 };
 
 export const updateGroup = async (id: number, updates: Partial<Group>): Promise<void> => {

@@ -1,24 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   DndContext,
-  pointerWithin,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
   DragOverlay,
-  useDroppable,
+  closestCenter,
   useDraggable,
+  useDroppable,
 } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import { arrayMove } from '@dnd-kit/sortable';
 import type { Template, Group } from '../types/index';
 import {
   loadStoredData,
@@ -29,12 +18,11 @@ import {
   updateGroup,
   deleteGroup,
   reorderTemplates,
-  reorderGroups,
   moveTemplateToGroup,
 } from '../utils/storage';
 import './Options.css';
 
-// Icons
+// ============== Icons ==============
 const PlusIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor">
     <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
@@ -59,7 +47,7 @@ const ChevronIcon = () => (
   </svg>
 );
 
-// Drag Handle Component (6 dots for templates only)
+// ============== Drag Handle (6 dots) ==============
 interface DragHandleProps {
   listeners?: React.HTMLAttributes<HTMLElement>;
   attributes?: React.HTMLAttributes<HTMLElement>;
@@ -82,24 +70,112 @@ const DragHandle: React.FC<DragHandleProps> = ({ listeners, attributes }) => (
   </div>
 );
 
-// Draggable Template Item
-interface DraggableTemplateProps {
+// ============== Template Modal ==============
+interface TemplateModalProps {
+  template: Template | null;
+  groupId: number | null;
+  onSave: (template: Partial<Template> & { groupId: number }) => void;
+  onClose: () => void;
+}
+
+const TemplateModal: React.FC<TemplateModalProps> = ({
+  template,
+  groupId,
+  onSave,
+  onClose,
+}) => {
+  const [name, setName] = useState(template?.name || '');
+  const [content, setContent] = useState(template?.content || '');
+  const [showError, setShowError] = useState(false);
+
+  const isNameEmpty = !name.trim();
+
+  const handleSave = () => {
+    if (isNameEmpty) {
+      setShowError(true);
+      return;
+    }
+    onSave({
+      id: template?.id,
+      groupId: template?.groupId ?? groupId!,
+      name: name.trim(),
+      content: content,
+    });
+  };
+
+  return (
+    <div 
+      className="modal-overlay" 
+      onMouseDown={(e) => {
+        // オーバーレイ自体がクリックされた場合のみ閉じる
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
+        <h2>{template ? 'テンプレートを編集' : '新しいテンプレート'}</h2>
+        <div className={`modal-field ${showError && isNameEmpty ? 'error' : ''}`}>
+          <label>
+            テンプレート名
+            <span className="required-mark">*必須</span>
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (showError) setShowError(false);
+            }}
+            placeholder="テンプレート名を入力"
+          />
+          {showError && isNameEmpty && (
+            <span className="error-message">テンプレート名は必須です</span>
+          )}
+        </div>
+        <div className="modal-field">
+          <label>内容</label>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="プロンプトの内容を入力"
+          />
+        </div>
+        <div className="modal-actions">
+          <button className="modal-btn cancel" onClick={onClose}>
+            キャンセル
+          </button>
+          <button 
+            className={`modal-btn save ${isNameEmpty ? 'disabled' : ''}`}
+            onClick={handleSave}
+            disabled={isNameEmpty}
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============== Template Item ==============
+interface TemplateItemProps {
   template: Template;
   onEdit: (template: Template) => void;
   onDelete: (id: number) => void;
   onNameChange: (id: number, name: string) => void;
+  isDragging?: boolean;
   isDropTarget?: boolean;
-  isDraggingTemplate?: boolean;
   dropPosition?: 'before' | 'after';
 }
 
-const DraggableTemplate: React.FC<DraggableTemplateProps> = ({
+const TemplateItem: React.FC<TemplateItemProps> = ({
   template,
   onEdit,
   onDelete,
   onNameChange,
+  isDragging = false,
   isDropTarget = false,
-  isDraggingTemplate = false,
   dropPosition = 'before',
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -109,20 +185,23 @@ const DraggableTemplate: React.FC<DraggableTemplateProps> = ({
     attributes,
     listeners,
     setNodeRef: setDragRef,
-    isDragging,
-  } = useDraggable({ 
+  } = useDraggable({
     id: `template-${template.id}`,
+    data: { template },
   });
 
   const { setNodeRef: setDropRef } = useDroppable({
     id: `template-${template.id}`,
+    data: { template },
   });
 
-  // 両方のrefを結合
-  const setNodeRef = useCallback((node: HTMLDivElement | null) => {
-    setDragRef(node);
-    setDropRef(node);
-  }, [setDragRef, setDropRef]);
+  const setNodeRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      setDragRef(node);
+      setDropRef(node);
+    },
+    [setDragRef, setDropRef]
+  );
 
   const handleDoubleClick = () => {
     setIsEditing(true);
@@ -131,7 +210,7 @@ const DraggableTemplate: React.FC<DraggableTemplateProps> = ({
 
   const handleBlur = () => {
     setIsEditing(false);
-    if (editName.trim() && editName !== template.name) {
+    if (editName !== template.name) {
       onNameChange(template.id, editName.trim());
     }
   };
@@ -147,16 +226,16 @@ const DraggableTemplate: React.FC<DraggableTemplateProps> = ({
 
   const isNameEmpty = !template.name.trim();
   
-  // ドロップターゲットのクラス名を決定
-  const dropTargetClass = isDropTarget && isDraggingTemplate 
-    ? (dropPosition === 'before' ? 'drop-target-line-before' : 'drop-target-line-after')
+  const dropClass = isDropTarget
+    ? dropPosition === 'before'
+      ? 'drop-target-line-before'
+      : 'drop-target-line-after'
     : '';
 
   return (
     <div 
-      ref={setNodeRef} 
-      className={`template-wrapper ${dropTargetClass}`}
-      style={{ opacity: isDragging ? 0 : 1 }}
+      ref={setNodeRef}
+      className={`template-wrapper ${dropClass} ${isDragging ? 'is-dragging' : ''}`}
     >
       <div className={`template-item ${isDragging ? 'dragging' : ''}`}>
         <DragHandle listeners={listeners} attributes={attributes} />
@@ -186,7 +265,11 @@ const DraggableTemplate: React.FC<DraggableTemplateProps> = ({
           <button className="icon-btn" onClick={() => onEdit(template)} title="編集">
             <EditIcon />
           </button>
-          <button className="icon-btn delete" onClick={() => onDelete(template.id)} title="削除">
+          <button
+            className="icon-btn delete"
+            onClick={() => onDelete(template.id)}
+            title="削除"
+          >
             <DeleteIcon />
           </button>
         </div>
@@ -195,31 +278,8 @@ const DraggableTemplate: React.FC<DraggableTemplateProps> = ({
   );
 };
 
-// Droppable area for a group (to receive templates)
-interface DroppableGroupAreaProps {
-  groupId: number;
-  children: React.ReactNode;
-  isOver: boolean;
-}
-
-const DroppableGroupArea: React.FC<DroppableGroupAreaProps> = ({ groupId, children, isOver }) => {
-  const { setNodeRef } = useDroppable({
-    id: `droppable-group-${groupId}`,
-  });
-
-  return (
-    <div 
-      ref={setNodeRef} 
-      className={`templates-container ${isOver ? 'drop-target' : ''}`}
-      data-group-id={groupId}
-    >
-      {children}
-    </div>
-  );
-};
-
-// Sortable Group Component
-interface SortableGroupProps {
+// ============== Group Item ==============
+interface GroupItemProps {
   group: Group;
   templates: Template[];
   isExpanded: boolean;
@@ -230,13 +290,18 @@ interface SortableGroupProps {
   onGroupNameChange: (id: number, name: string) => void;
   onDeleteGroup: (id: number) => void;
   onAddTemplate: (groupId: number) => void;
-  isOver: boolean;
-  overTemplateId: string | null;
-  isDraggingTemplate: boolean;
-  dropPosition: 'before' | 'after';
+  startEditing?: boolean;
+  onEditingComplete?: () => void;
+  // Drag state
+  activeTemplateId?: number | null;
+  overTemplateId?: number | null;
+  dropPosition?: 'before' | 'after';
+  isHeaderDropTarget?: boolean;
+  isAddBtnDropTarget?: boolean;
+  isCrossGroupDrag?: boolean;
 }
 
-const SortableGroup: React.FC<SortableGroupProps> = ({
+const GroupItem: React.FC<GroupItemProps> = ({
   group,
   templates,
   isExpanded,
@@ -247,30 +312,27 @@ const SortableGroup: React.FC<SortableGroupProps> = ({
   onGroupNameChange,
   onDeleteGroup,
   onAddTemplate,
-  isOver,
-  overTemplateId,
-  isDraggingTemplate,
-  dropPosition,
+  startEditing = false,
+  onEditingComplete,
+  activeTemplateId = null,
+  overTemplateId = null,
+  dropPosition = 'before',
+  isHeaderDropTarget = false,
+  isAddBtnDropTarget = false,
+  isCrossGroupDrag = false,
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(startEditing);
   const [editName, setEditName] = useState(group.name);
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    isDragging,
-  } = useSortable({ 
-    id: `group-${group.id}`,
-    animateLayoutChanges: () => false, // アニメーションを無効化
+  const { setNodeRef: setHeaderDropRef } = useDroppable({
+    id: `group-header-${group.id}`,
+    data: { type: 'group-header', groupId: group.id },
   });
 
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition: undefined, // transitionを無効化
-    opacity: isDragging ? 0 : 1, // ドラッグ中は非表示（DragOverlayで表示）
-  };
+  const { setNodeRef: setAddBtnDropRef } = useDroppable({
+    id: `group-add-btn-${group.id}`,
+    data: { type: 'group-add-btn', groupId: group.id },
+  });
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -280,9 +342,13 @@ const SortableGroup: React.FC<SortableGroupProps> = ({
 
   const handleBlur = () => {
     setIsEditing(false);
-    if (editName.trim() && editName !== group.name) {
+    // 空の場合は元の名前に戻す
+    if (!editName.trim()) {
+      setEditName(group.name);
+    } else if (editName.trim() !== group.name) {
       onGroupNameChange(group.id, editName.trim());
     }
+    onEditingComplete?.();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -291,35 +357,20 @@ const SortableGroup: React.FC<SortableGroupProps> = ({
     } else if (e.key === 'Escape') {
       setIsEditing(false);
       setEditName(group.name);
+      onEditingComplete?.();
     }
   };
 
   const sortedTemplates = [...templates].sort((a, b) => a.order - b.order);
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`group-item ${isDragging ? 'dragging' : ''}`}
-    >
-      <div
-        className="group-header"
-        {...attributes}
-        {...listeners}
-        onClick={() => {
-          // シングルクリックでトグル（編集中は除く）
-          if (!isEditing) {
-            onToggle();
-          }
-        }}
+    <div className="group-item">
+      <div 
+        ref={setHeaderDropRef}
+        className={`group-header ${isHeaderDropTarget ? 'header-drop-target' : ''}`} 
+        onClick={() => !isEditing && onToggle()}
       >
-        <button
-          className={`expand-btn ${isExpanded ? 'expanded' : ''}`}
-          onClick={() => {
-            // ボタン自体は何もしない（ヘッダーのクリックでトグル）
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
+        <button className={`expand-btn ${isExpanded ? 'expanded' : ''}`}>
           <ChevronIcon />
         </button>
         {isEditing ? (
@@ -331,19 +382,17 @@ const SortableGroup: React.FC<SortableGroupProps> = ({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
             autoFocus
           />
         ) : (
-          <span 
-            className="group-name" 
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              handleDoubleClick(e);
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {group.name}
+          <span className="group-name">
+            <span
+              className="group-name-text"
+              onDoubleClick={handleDoubleClick}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {group.name}
+            </span>
           </span>
         )}
         <div className="group-header-spacer" />
@@ -354,7 +403,6 @@ const SortableGroup: React.FC<SortableGroupProps> = ({
               e.stopPropagation();
               onDeleteGroup(group.id);
             }}
-            onPointerDown={(e) => e.stopPropagation()}
             title="グループを削除"
           >
             <DeleteIcon />
@@ -362,94 +410,44 @@ const SortableGroup: React.FC<SortableGroupProps> = ({
         </div>
       </div>
       {isExpanded && (
-        <DroppableGroupArea groupId={group.id} isOver={isOver}>
+        <div 
+          className={`templates-container ${isCrossGroupDrag ? 'group-drop-target' : ''}`}
+        >
+          {isHeaderDropTarget && (
+            <div className="drop-line-top" />
+          )}
           {sortedTemplates.map((template) => (
-            <DraggableTemplate
+            <TemplateItem
               key={template.id}
               template={template}
               onEdit={onEdit}
               onDelete={onDeleteTemplate}
               onNameChange={onTemplateNameChange}
-              isDropTarget={overTemplateId === `template-${template.id}`}
-              isDraggingTemplate={isDraggingTemplate}
+              isDragging={activeTemplateId === template.id}
+              isDropTarget={overTemplateId === template.id}
               dropPosition={dropPosition}
             />
           ))}
-          <button
-            className="add-template-btn"
-            onClick={() => onAddTemplate(group.id)}
-          >
-            <PlusIcon />
-            テンプレートを追加
-          </button>
-        </DroppableGroupArea>
+          <div className="add-template-wrapper">
+            {isAddBtnDropTarget && (
+              <div className="drop-line-bottom" />
+            )}
+            <button 
+              ref={setAddBtnDropRef}
+              className="add-template-btn"
+              onClick={() => onAddTemplate(group.id)}
+            >
+              <PlusIcon />
+              テンプレートを追加
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
 };
 
-// Template Edit Modal
-interface TemplateModalProps {
-  template: Template | null;
-  groupId: number | null;
-  onSave: (template: Partial<Template> & { groupId: number }) => void;
-  onClose: () => void;
-}
-
-const TemplateModal: React.FC<TemplateModalProps> = ({
-  template,
-  groupId,
-  onSave,
-  onClose,
-}) => {
-  const [name, setName] = useState(template?.name || '');
-  const [content, setContent] = useState(template?.content || '');
-
-  const handleSave = () => {
-    if (!name.trim()) return;
-    onSave({
-      id: template?.id,
-      groupId: template?.groupId ?? groupId!,
-      name: name.trim(),
-      content: content,
-    });
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{template ? 'テンプレートを編集' : '新しいテンプレート'}</h2>
-        <div className="modal-field">
-          <label>テンプレート名</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="テンプレート名を入力"
-          />
-        </div>
-        <div className="modal-field">
-          <label>内容</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="プロンプトの内容を入力"
-          />
-        </div>
-        <div className="modal-actions">
-          <button className="modal-btn cancel" onClick={onClose}>
-            キャンセル
-          </button>
-          <button className="modal-btn save" onClick={handleSave}>
-            保存
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Main Options Component
+// ============== Main Options Component ==============
 const Options: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -457,23 +455,14 @@ const Options: React.FC = () => {
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [addingToGroupId, setAddingToGroupId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [overGroupId, setOverGroupId] = useState<number | null>(null);
-  const [overTemplateId, setOverTemplateId] = useState<string | null>(null);
-  const [dropPosition, setDropPosition] = useState<'before' | 'after'>('after');
-  const isDraggingGroup = activeId?.startsWith('group-') ?? false;
-  const isDraggingTemplate = activeId?.startsWith('template-') ?? false;
+  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  // Drag state
+  const [activeTemplateId, setActiveTemplateId] = useState<number | null>(null);
+  const [overTemplateId, setOverTemplateId] = useState<number | null>(null);
+  const [overHeaderGroupId, setOverHeaderGroupId] = useState<number | null>(null);
+  const [overAddBtnGroupId, setOverAddBtnGroupId] = useState<number | null>(null);
+  const [dropPosition, setDropPosition] = useState<'before' | 'after'>('before');
 
   const loadData = useCallback(async () => {
     const data = await loadStoredData();
@@ -486,9 +475,187 @@ const Options: React.FC = () => {
     loadData();
   }, [loadData]);
 
+  // ========== Drag Handlers ==========
+  const handleDragStart = (event: import('@dnd-kit/core').DragStartEvent) => {
+    const { active } = event;
+    const idStr = String(active.id);
+    if (idStr.startsWith('template-')) {
+      const templateId = parseInt(idStr.replace('template-', ''), 10);
+      setActiveTemplateId(templateId);
+    }
+  };
+
+  const handleDragOver = (event: import('@dnd-kit/core').DragOverEvent) => {
+    const { over, active, delta } = event;
+    
+    if (!over) {
+      setOverTemplateId(null);
+      setOverHeaderGroupId(null);
+      setOverAddBtnGroupId(null);
+      return;
+    }
+
+    const overIdStr = String(over.id);
+
+    if (overIdStr.startsWith('template-')) {
+      const templateId = parseInt(overIdStr.replace('template-', ''), 10);
+      // 自分自身の上なら無視
+      if (overIdStr === String(active.id)) {
+        setOverTemplateId(null);
+        return;
+      }
+      setOverTemplateId(templateId);
+      setOverHeaderGroupId(null);
+      setOverAddBtnGroupId(null);
+      // ドラッグ方向で位置を決定
+      setDropPosition(delta.y > 0 ? 'after' : 'before');
+    } else if (overIdStr.startsWith('group-header-')) {
+      const groupId = parseInt(overIdStr.replace('group-header-', ''), 10);
+      setOverHeaderGroupId(groupId);
+      setOverAddBtnGroupId(null);
+      setOverTemplateId(null);
+    } else if (overIdStr.startsWith('group-add-btn-')) {
+      const groupId = parseInt(overIdStr.replace('group-add-btn-', ''), 10);
+      setOverAddBtnGroupId(groupId);
+      setOverHeaderGroupId(null);
+      setOverTemplateId(null);
+    } else {
+      // 空白エリアなど
+      setOverTemplateId(null);
+      setOverHeaderGroupId(null);
+      setOverAddBtnGroupId(null);
+    }
+  };
+
+  const handleDragEnd = async (event: import('@dnd-kit/core').DragEndEvent) => {
+    const { active, over } = event;
+
+    setActiveTemplateId(null);
+    setOverTemplateId(null);
+    setOverHeaderGroupId(null);
+    setOverAddBtnGroupId(null);
+
+    if (!over) return;
+
+    const activeIdStr = String(active.id);
+    const overIdStr = String(over.id);
+
+    if (!activeIdStr.startsWith('template-')) return;
+
+    const activeTemplateId = parseInt(activeIdStr.replace('template-', ''), 10);
+    const activeTemplate = templates.find((t) => t.id === activeTemplateId);
+    if (!activeTemplate) return;
+
+    if (overIdStr.startsWith('template-')) {
+      const overTemplateId = parseInt(overIdStr.replace('template-', ''), 10);
+      if (activeTemplateId === overTemplateId) return;
+
+      const overTemplate = templates.find((t) => t.id === overTemplateId);
+      if (!overTemplate) return;
+
+      const sourceGroupId = activeTemplate.groupId;
+      const targetGroupId = overTemplate.groupId;
+
+      if (sourceGroupId === targetGroupId) {
+        // 同じグループ内での移動
+        const groupTemplates = templates
+          .filter((t) => t.groupId === sourceGroupId)
+          .sort((a, b) => a.order - b.order);
+
+        const oldIndex = groupTemplates.findIndex((t) => t.id === activeTemplateId);
+        let newIndex = groupTemplates.findIndex((t) => t.id === overTemplateId);
+
+        if (dropPosition === 'after') {
+          newIndex = newIndex + 1;
+        }
+
+        if (oldIndex !== newIndex) {
+          const newOrder = arrayMove(groupTemplates, oldIndex, newIndex);
+          await reorderTemplates(
+            sourceGroupId,
+            newOrder.map((t) => t.id)
+          );
+          await loadData();
+        }
+      } else {
+        // グループ間移動
+        const targetGroupTemplates = templates
+          .filter((t) => t.groupId === targetGroupId)
+          .sort((a, b) => a.order - b.order);
+
+        let targetIndex = targetGroupTemplates.findIndex((t) => t.id === overTemplateId);
+        if (dropPosition === 'after') {
+          targetIndex = targetIndex + 1;
+        }
+
+        await moveTemplateToGroup(activeTemplateId, targetGroupId, targetIndex);
+        await loadData();
+      }
+    } else if (overIdStr.startsWith('group-header-')) {
+      // グループヘッダーにドロップ → 一番上に追加
+      const targetGroupId = parseInt(overIdStr.replace('group-header-', ''), 10);
+      if (activeTemplate.groupId !== targetGroupId) {
+        await moveTemplateToGroup(activeTemplateId, targetGroupId, 0);
+        await loadData();
+      } else {
+        // 同じグループ内で一番上に移動
+        const groupTemplates = templates
+          .filter((t) => t.groupId === targetGroupId)
+          .sort((a, b) => a.order - b.order);
+        const oldIndex = groupTemplates.findIndex((t) => t.id === activeTemplateId);
+        if (oldIndex > 0) {
+          const newOrder = arrayMove(groupTemplates, oldIndex, 0);
+          await reorderTemplates(targetGroupId, newOrder.map((t) => t.id));
+          await loadData();
+        }
+      }
+    } else if (overIdStr.startsWith('group-add-btn-')) {
+      // 追加ボタンにドロップ → 一番下に追加
+      const targetGroupId = parseInt(overIdStr.replace('group-add-btn-', ''), 10);
+      const targetGroupTemplates = templates.filter(
+        (t) => t.groupId === targetGroupId
+      );
+      if (activeTemplate.groupId !== targetGroupId) {
+        await moveTemplateToGroup(
+          activeTemplateId,
+          targetGroupId,
+          targetGroupTemplates.length
+        );
+        await loadData();
+      } else {
+        // 同じグループ内で一番下に移動
+        const groupTemplates = [...targetGroupTemplates].sort((a, b) => a.order - b.order);
+        const oldIndex = groupTemplates.findIndex((t) => t.id === activeTemplateId);
+        if (oldIndex < groupTemplates.length - 1) {
+          const newOrder = arrayMove(groupTemplates, oldIndex, groupTemplates.length - 1);
+          await reorderTemplates(targetGroupId, newOrder.map((t) => t.id));
+          await loadData();
+        }
+      }
+    }
+    // 空白エリアの場合は何もしない（元の場所に戻る）
+  };
+
+  const handleDragCancel = () => {
+    setActiveTemplateId(null);
+    setOverTemplateId(null);
+    setOverHeaderGroupId(null);
+    setOverAddBtnGroupId(null);
+  };
+
+  const activeTemplate = activeTemplateId
+    ? templates.find((t) => t.id === activeTemplateId)
+    : null;
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // ========== Group Handlers ==========
   const handleAddGroup = async () => {
-    await addGroup({ name: '新しいグループ' });
+    const newGroupId = await addGroup({ name: '新しいグループ' });
     await loadData();
+    setEditingGroupId(newGroupId);
   };
 
   const handleDeleteGroup = async (id: number) => {
@@ -515,6 +682,7 @@ const Options: React.FC = () => {
     });
   };
 
+  // ========== Template Handlers ==========
   const handleAddTemplate = (groupId: number) => {
     setAddingToGroupId(groupId);
     setEditingTemplate(null);
@@ -566,215 +734,59 @@ const Options: React.FC = () => {
     setAddingToGroupId(null);
   };
 
-  const getTemplatesForGroup = (groupId: number) => {
-    return templates.filter((t) => t.groupId === groupId);
-  };
-
-  // Get active item for drag overlay
-  const getActiveTemplate = () => {
-    if (!activeId || !activeId.startsWith('template-')) return null;
-    const templateId = parseInt(activeId.replace('template-', ''));
-    return templates.find((t) => t.id === templateId) || null;
-  };
-
-  const getActiveGroup = () => {
-    if (!activeId || !activeId.startsWith('group-')) return null;
-    const groupId = parseInt(activeId.replace('group-', ''));
-    return groups.find((g) => g.id === groupId) || null;
-  };
-
-  // Drag handlers
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(String(event.active.id));
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    
-    if (!over) {
-      setOverGroupId(null);
-      setOverTemplateId(null);
-      return;
-    }
-
-    const activeIdStr = String(active.id);
-    const overIdStr = String(over.id);
-
-    // Only track group for template drags
-    if (activeIdStr.startsWith('template-')) {
-      if (overIdStr.startsWith('droppable-group-')) {
-        const groupId = parseInt(overIdStr.replace('droppable-group-', ''));
-        setOverGroupId(groupId);
-        setOverTemplateId(null);
-        setDropPosition('after');
-      } else if (overIdStr.startsWith('template-')) {
-        const templateId = parseInt(overIdStr.replace('template-', ''));
-        const template = templates.find((t) => t.id === templateId);
-        if (template) {
-          setOverGroupId(template.groupId);
-          setOverTemplateId(overIdStr);
-          
-          // 上下の位置判定
-          const activeTemplateId = parseInt(activeIdStr.replace('template-', ''));
-          const activeTemplate = templates.find((t) => t.id === activeTemplateId);
-          if (activeTemplate && activeTemplate.groupId === template.groupId) {
-            // 同じグループ内での移動
-            const groupTemplates = templates
-              .filter((t) => t.groupId === template.groupId)
-              .sort((a, b) => a.order - b.order);
-            const activeIndex = groupTemplates.findIndex((t) => t.id === activeTemplateId);
-            const overIndex = groupTemplates.findIndex((t) => t.id === templateId);
-            setDropPosition(activeIndex < overIndex ? 'after' : 'before');
-          } else {
-            // 別グループへの移動は常にbefore
-            setDropPosition('before');
-          }
-        }
-      } else {
-        setOverGroupId(null);
-        setOverTemplateId(null);
-      }
-    } else {
-      setOverTemplateId(null);
-    }
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    const currentDropPosition = dropPosition;
-    
-    setActiveId(null);
-    setOverGroupId(null);
-    setOverTemplateId(null);
-
-    if (!over) return;
-
-    const activeIdStr = String(active.id);
-    const overIdStr = String(over.id);
-
-    // Handle group reordering
-    if (activeIdStr.startsWith('group-') && overIdStr.startsWith('group-')) {
-      const activeGroupId = parseInt(activeIdStr.replace('group-', ''));
-      const overGroupId = parseInt(overIdStr.replace('group-', ''));
-      
-      if (activeGroupId !== overGroupId) {
-        const oldIndex = groups.findIndex((g) => g.id === activeGroupId);
-        const newIndex = groups.findIndex((g) => g.id === overGroupId);
-        
-        if (oldIndex !== -1 && newIndex !== -1) {
-          const newGroups = arrayMove(groups, oldIndex, newIndex);
-          setGroups(newGroups);
-          await reorderGroups(newGroups.map((g) => g.id));
-        }
-      }
-      return;
-    }
-
-    // Handle template reordering/moving
-    if (activeIdStr.startsWith('template-')) {
-      const activeTemplateId = parseInt(activeIdStr.replace('template-', ''));
-      const activeTemplate = templates.find((t) => t.id === activeTemplateId);
-      
-      if (!activeTemplate) return;
-
-      // Dropped on a droppable group area
-      if (overIdStr.startsWith('droppable-group-')) {
-        const targetGroupId = parseInt(overIdStr.replace('droppable-group-', ''));
-        
-        if (activeTemplate.groupId !== targetGroupId) {
-          // Move to new group at the end
-          const targetGroupTemplates = templates.filter((t) => t.groupId === targetGroupId);
-          await moveTemplateToGroup(activeTemplateId, targetGroupId, targetGroupTemplates.length);
-          await loadData();
-        }
-        return;
-      }
-
-      // Dropped on another template
-      if (overIdStr.startsWith('template-')) {
-        const overTemplateIdNum = parseInt(overIdStr.replace('template-', ''));
-        const overTemplate = templates.find((t) => t.id === overTemplateIdNum);
-        
-        if (!overTemplate) return;
-
-        const targetGroupId = overTemplate.groupId;
-        const groupTemplates = templates
-          .filter((t) => t.groupId === targetGroupId)
-          .sort((a, b) => a.order - b.order);
-        
-        let overIndex = groupTemplates.findIndex((t) => t.id === overTemplateIdNum);
-        
-        // dropPositionに基づいて挿入位置を調整
-        if (currentDropPosition === 'after') {
-          overIndex = overIndex + 1;
-        }
-
-        if (activeTemplate.groupId === targetGroupId) {
-          // Same group - reorder
-          const activeIndex = groupTemplates.findIndex((t) => t.id === activeTemplateId);
-          
-          // 自分より後ろに移動する場合は調整
-          let newIndex = overIndex;
-          if (activeIndex < overIndex) {
-            newIndex = overIndex - 1;
-          }
-          
-          if (activeIndex !== newIndex) {
-            const newOrder = arrayMove(groupTemplates, activeIndex, newIndex);
-            await reorderTemplates(targetGroupId, newOrder.map((t) => t.id));
-            await loadData();
-          }
-        } else {
-          // Different group - move
-          await moveTemplateToGroup(activeTemplateId, targetGroupId, overIndex);
-          await loadData();
-        }
-      }
-    }
-  };
-
-  // All sortable items (groups only - templates are sorted within their own SortableContext)
-  const groupSortableIds = groups.map((g) => `group-${g.id}`);
-
-  const activeTemplate = getActiveTemplate();
-  const activeGroup = getActiveGroup();
+  // ========== Utilities ==========
+  const getTemplatesForGroup = (groupId: number) =>
+    templates.filter((t) => t.groupId === groupId);
 
   return (
-    <div className="options-container">
-      <header className="options-header">
-        <h1>PromptTemplate</h1>
-      </header>
+    <DndContext
+      collisionDetection={closestCenter}
+      modifiers={[restrictToVerticalAxis]}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <div className="options-container">
+        <header className="options-header">
+          <h1>PromptTemplate</h1>
+        </header>
 
-      <button className="add-group-btn" onClick={handleAddGroup}>
-        <PlusIcon />
-        グループを追加
-      </button>
+        <button className="add-group-btn" onClick={handleAddGroup}>
+          <PlusIcon />
+          グループを追加
+        </button>
 
-      {groups.length === 0 ? (
-        <div className="empty-state">
-          <p>まだグループがありません</p>
-          <p>「グループを追加」ボタンをクリックして開始しましょう</p>
-        </div>
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={pointerWithin}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={groupSortableIds}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="groups-container">
-              {groups.map((group) => (
-                <SortableGroup
+        {groups.length === 0 ? (
+          <div className="empty-state">
+            <p>まだグループがありません</p>
+            <p>「グループを追加」ボタンをクリックして開始しましょう</p>
+          </div>
+        ) : (
+          <div className="groups-container">
+            {groups.map((group) => {
+              const groupTemplates = getTemplatesForGroup(group.id);
+              // グループ内のどれかのテンプレートがドロップターゲットか
+              const groupOverTemplateId = groupTemplates.find(
+                (t) => t.id === overTemplateId
+              )?.id ?? null;
+              // アクティブテンプレートが別グループからドラッグされているか
+              const draggedTemplate = activeTemplateId
+                ? templates.find((t) => t.id === activeTemplateId)
+                : undefined;
+              const isHeaderDropTarget = overHeaderGroupId === group.id;
+              const isAddBtnDropTarget = overAddBtnGroupId === group.id;
+              const isCrossGroupDrag =
+                draggedTemplate !== undefined &&
+                draggedTemplate.groupId !== group.id &&
+                (groupOverTemplateId !== null || isHeaderDropTarget || isAddBtnDropTarget);
+
+              return (
+                <GroupItem
                   key={group.id}
                   group={group}
-                  templates={getTemplatesForGroup(group.id)}
-                  isExpanded={expandedGroups.has(group.id) && !isDraggingGroup}
+                  templates={groupTemplates}
+                  isExpanded={expandedGroups.has(group.id)}
                   onToggle={() => handleToggleGroup(group.id)}
                   onEdit={handleEditTemplate}
                   onDeleteTemplate={handleDeleteTemplate}
@@ -782,45 +794,47 @@ const Options: React.FC = () => {
                   onGroupNameChange={handleGroupNameChange}
                   onDeleteGroup={handleDeleteGroup}
                   onAddTemplate={handleAddTemplate}
-                  isOver={overGroupId === group.id && !overTemplateId}
-                  overTemplateId={overTemplateId}
-                  isDraggingTemplate={isDraggingTemplate}
+                  startEditing={editingGroupId === group.id}
+                  onEditingComplete={() => setEditingGroupId(null)}
+                  activeTemplateId={activeTemplateId}
+                  overTemplateId={groupOverTemplateId}
                   dropPosition={dropPosition}
+                  isHeaderDropTarget={isHeaderDropTarget}
+                  isAddBtnDropTarget={isAddBtnDropTarget}
+                  isCrossGroupDrag={isCrossGroupDrag}
                 />
-              ))}
-            </div>
-          </SortableContext>
-          
-          <DragOverlay>
-            {activeTemplate && (
-              <div className="template-item drag-overlay template-dragging">
-                <DragHandle />
-                <span className="template-name">{activeTemplate.name || '(名前なし)'}</span>
-              </div>
-            )}
-            {activeGroup && (
-              <div className="group-item drag-overlay">
-                <div className="group-header">
-                  <button className="expand-btn">
-                    <ChevronIcon />
-                  </button>
-                  <span className="group-name">{activeGroup.name}</span>
-                </div>
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
-      )}
+              );
+            })}
+          </div>
+        )}
 
-      {isModalOpen && (
-        <TemplateModal
-          template={editingTemplate}
-          groupId={addingToGroupId}
-          onSave={handleSaveTemplate}
-          onClose={handleCloseModal}
-        />
-      )}
-    </div>
+        {isModalOpen && (
+          <TemplateModal
+            template={editingTemplate}
+            groupId={addingToGroupId}
+            onSave={handleSaveTemplate}
+            onClose={handleCloseModal}
+          />
+        )}
+
+        <DragOverlay dropAnimation={null}>
+          {activeTemplate ? (
+            <div className="template-item drag-overlay">
+              <DragHandle />
+              <span className="template-name">{activeTemplate.name}</span>
+              <div className="template-actions">
+                <button className="icon-btn" title="編集">
+                  <EditIcon />
+                </button>
+                <button className="icon-btn delete" title="削除">
+                  <DeleteIcon />
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </div>
+    </DndContext>
   );
 };
 
