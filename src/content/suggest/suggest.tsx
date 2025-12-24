@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import getCaretCoordinates from 'textarea-caret';
 import './styles.scss';
 import { loadStoredData } from '../../utils/storage';
 import type { Template, Group, StorageData } from '../../types';
@@ -58,12 +59,31 @@ export const hideSuggest = () => {
 //* サジェストの位置を設定
 const setPos = (el: HTMLElement) => {
   if (!rootEl) return;
-
   const rect = el.getBoundingClientRect();
-  const sel = window.getSelection();
-  const rangeRect = sel?.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : null;
-  const left = rangeRect?.left ? rangeRect.left : rect.left;
+  let left = rect.left;
 
+  // キャレット位置からleftを計算
+  if (el instanceof HTMLTextAreaElement) {  // TextAreaの場合
+    const caret = getCaretCoordinates(el, el.selectionEnd);
+    left = caret.left + rect.left;
+  } else if (el instanceof HTMLDivElement) {  // ContentEditableの場合
+    const sel = window.getSelection();
+    if (sel?.rangeCount) {
+      const range = sel.getRangeAt(0).cloneRange();
+      range.collapse(true);
+      
+      const tempSpan = document.createElement('span');
+      tempSpan.textContent = '\u200B';
+      range.insertNode(tempSpan);
+      
+      left = tempSpan.getBoundingClientRect().left;
+      tempSpan.remove();
+    } else {
+      left = rect.left;
+    }
+  }
+
+  // topを計算
   const showAbove = rect.top / window.innerHeight > 0.75;
   const height = rootEl.offsetHeight;
 

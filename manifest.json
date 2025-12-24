@@ -11,11 +11,31 @@
   "content_scripts": [
     {
       "matches": [
-        "https://chatgpt.com/*",
+        "https://*.chatgpt.com/*",
+        "https://*.openai.com/*",
+        "https://chat.com/*",
+
         "https://gemini.google.com/*",
+        "https://notebooklm.google.com/*",
+
         "https://claude.ai/*",
-        "https://perplexity.ai/*",
-        "https://notion.so/*"
+
+        "https://*.perplexity.ai/*",
+
+        "https://*.notion.so/*",
+        "https://*.notion.com/*",
+        "https://*.notion.site/*",
+
+        "https://grok.com/*",
+        "https://*.x.ai/*",
+        "https://x.com/grok/*",
+
+        "https://*.deepseek.com/*",
+        "https://ai.com/*",
+
+        "https://*.github.com/*",
+        "https://*.cloud.microsoft/*",
+        "https://copilot.microsoft.com/*"
       ],
       "js": ["src/content/index.js"]
     }

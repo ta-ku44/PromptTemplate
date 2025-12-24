@@ -30,17 +30,21 @@ export class InputHandler {
 
   //* テンプレートを挿入
   public insertPrompt = (template: Template) => {
+    console.group("InputHandler.insertPrompt");
     const el = this.inputElement;
 
     if (el instanceof HTMLTextAreaElement) {
+      console.log('HTMLElement type:', el.tagName);
       this.insertIntoTextArea(el, template.content);
     } else if (el instanceof HTMLDivElement) {
+      console.log('HTMLElement type:', el.tagName);
       this.insertIntoContentEditable(el, template.content);
     } else {
       console.error('サポートされていない入力要素:', el);
       return;
     }
 
+    console.groupEnd();
     el.focus();
   };
 
@@ -70,10 +74,13 @@ export class InputHandler {
     const editorType = this.detectEditorType(el);
 
     if (editorType === "prosemirror") {
+      console.log('ContentEditable Editor Type: ProseMirror');
       this.handleProseMirrorInsert(el, content);
     } else if (editorType === "lexical") {
+      console.log('ContentEditable Editor Type: Lexical');
       // TODO: Lexical用の処理
     } else {
+      console.log('ContentEditable Editor Type: Standard');
       this.insertViaExecCommand(el, content) || this.fallbackInsert(el, content);
     }
   }
@@ -83,10 +90,13 @@ export class InputHandler {
     const type = this.detectProseMirrorType(el);
 
     if (type === "tiptap") {
+      console.log('ProseMirror Type: Tiptap');
       this.insertViaExecCommand(el, content) || this.fallbackInsert(el, content);
     } else if (type === "prosemirror") {
+      console.log('ProseMirror Type: Vanilla ProseMirror');
       this.insertViaInnerText(el, content);
     } else {
+      console.log('ProseMirror Type: Unknown - using fallback');
       this.fallbackInsert(el, content);
     }
   }
