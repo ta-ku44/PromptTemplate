@@ -12,7 +12,7 @@ export type Category = {
 
 export type StorageData = {
   version: number;
-  items: Record<string, Item>;
-  categories: string[];
+  items: Item[];
+  categories: Category[];
   triggerKey: string;
 };
