@@ -1,4 +1,4 @@
-import { DomObserver } from './utils/domObserver';
+import { DomObserver } from './utils/domObserver.ts';
 
 let triggerKey: string;
 let curInputBox: HTMLElement | null = null;
@@ -28,9 +28,6 @@ function cleanup() {
 
 function handleInput(): void {
   if (!curInputBox) return;
-
 }
 
-async function loadKey(): Promise<void> {
-
-}
+async function loadKey(): Promise<void> {}

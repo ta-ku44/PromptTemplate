@@ -39,13 +39,14 @@ export class DomObserver {
 
     if (foundInputBox && foundInputBox !== this.curInputBox) {
       this.curInputBox = foundInputBox;
+      console.log('有効な入力欄が見つかりました:', foundInputBox);
       this.onFound(foundInputBox);
     } else if (!foundInputBox) {
       console.log('有効な入力欄が見つかりませんでした');
     }
   }
 
-  //* テキストエリアまたはコンテンツエディタブル要素を探索
+  //* コンテンツエディタブル要素またはテキストエリアを探索
   private findInputBox(): HTMLElement | null {
     const selectors = ['[contenteditable="true"]', 'textarea:not([disabled]):not([readonly])'];
 
@@ -65,6 +66,7 @@ export class DomObserver {
 
     const style = window.getComputedStyle(el);
     const rect = el.getBoundingClientRect();
+
     return (
       style.display !== 'none' &&
       style.visibility !== 'hidden' &&
