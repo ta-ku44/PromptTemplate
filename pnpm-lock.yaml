@@ -11,6 +11,9 @@ importers:
       '@wxt-dev/storage':
         specifier: ^1.2.7
         version: 1.2.7
+      preact:
+        specifier: ^10.28.4
+        version: 10.28.4
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -1783,6 +1786,9 @@ packages:
   powershell-utils@0.1.0:
     resolution: {integrity: sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A==}
     engines: {node: '>=20'}
+
+  preact@10.28.4:
+    resolution: {integrity: sha512-uKFfOHWuSNpRFVTnljsCluEFq57OKT+0QdOiQo8XWnQ/pSvg7OpX5eNOejELXJMWy+BwM2nobz0FkvzmnpCNsQ==}
 
   prettier-plugin-tailwindcss@0.7.2:
     resolution: {integrity: sha512-LkphyK3Fw+q2HdMOoiEHWf93fNtYJwfamoKPl7UwtjFQdei/iIBoX11G6j706FzN3ymX9mPVi97qIY8328vdnA==}
@@ -3810,6 +3816,8 @@ snapshots:
       source-map-js: 1.2.1
 
   powershell-utils@0.1.0: {}
+
+  preact@10.28.4: {}
 
   prettier-plugin-tailwindcss@0.7.2(prettier@3.8.1):
     dependencies:
