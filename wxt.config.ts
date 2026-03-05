@@ -8,7 +8,7 @@ function preactForContentScripts(): Plugin {
     name: 'preact-content-scripts',
     transform(code, id) {
       if (!/[\\/]content[\\/]/.test(id) || !/\.[jt]sx$/.test(id)) return null;
-      return { code: `/* @jsxImportSource preact */\n${code}` };
+      return { code: `/* @jsxImportSource preact */\n${code}`, map: null };
     },
   };
 }
