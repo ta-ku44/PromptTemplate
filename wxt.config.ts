@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 function preactForContentScripts(): Plugin {
   return {
     name: 'preact-content-scripts',
+    enforce: 'pre',
     transform(code, id) {
       if (!/[\\/]content[\\/]/.test(id) || !/\.[jt]sx$/.test(id)) return null;
       return { code: `/* @jsxImportSource preact */\n${code}`, map: null };
