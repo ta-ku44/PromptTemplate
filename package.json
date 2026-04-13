@@ -15,7 +15,11 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
+    "@dnd-kit/react": "^0.3.2",
+    "@uiw/react-codemirror": "^4.25.9",
     "@wxt-dev/storage": "^1.2.7",
+    "fractional-indexing": "^3.2.0",
+    "nanoid": "^5.1.7",
     "preact": "^10.28.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
