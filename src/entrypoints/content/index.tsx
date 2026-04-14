@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import ContentApp from './contentApp';
+import ContentApp from './ContentApp';
 import '@/assets/tailwind.css';
 
 export default defineContentScript({
