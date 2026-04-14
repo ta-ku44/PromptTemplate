@@ -5,7 +5,7 @@ interface AnchorLinkProps {
   
 }
 
-export function AnchorLink(AnchorLinkProps: AnchorLinkProps) {
+export default function AnchorLink(AnchorLinkProps: AnchorLinkProps) {
   return (
     <div className='anchor-link'>anchor link</div>
   );

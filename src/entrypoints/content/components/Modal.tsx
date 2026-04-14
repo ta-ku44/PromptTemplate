@@ -5,7 +5,7 @@ interface ModalProps {
   
 }
 
-export function Modal(ModalProps: ModalProps) {
+export default function Modal(ModalProps: ModalProps) {
   return (
     <div className='modal'>modal</div>
   );
