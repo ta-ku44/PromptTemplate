@@ -1,4 +1,3 @@
-/* @jsxImportSource preact */
 import { render } from 'preact';
 import ContentApp from './contentApp';
 import '@/assets/tailwind.css';

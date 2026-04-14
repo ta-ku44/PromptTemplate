@@ -1,4 +1,3 @@
-/* @jsxImportSource preact */
 import { createContext } from 'preact';
 import { useContext } from 'preact/hooks';
 import { Suggest, Modal, AnchorLink } from './components';
