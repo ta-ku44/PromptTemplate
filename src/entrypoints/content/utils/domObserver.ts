@@ -13,9 +13,7 @@ export class DomObserver {
     if (this.observer) this.observer.disconnect();
 
     this.observer = new MutationObserver(() => {
-      // 既に入力欄を取得していてかつ、まだDOMに存在している場合
       if (this.curInputBox && document.body.contains(this.curInputBox) && this.isVisibleInput(this.curInputBox)) return;
-      // 既に取得していた入力欄がDOMから削除されていた場合
       if (this.curInputBox && !document.body.contains(this.curInputBox)) {
         this.curInputBox = null;
         this.onLost?.();
@@ -39,16 +37,15 @@ export class DomObserver {
 
     if (foundInputBox && foundInputBox !== this.curInputBox) {
       this.curInputBox = foundInputBox;
-      console.log('有効な入力欄が見つかりました:', foundInputBox);
       this.onFound(foundInputBox);
-    } else if (!foundInputBox) {
-      console.log('有効な入力欄が見つかりませんでした');
     }
   }
 
-  //* コンテンツエディタブル要素またはテキストエリアを探索
   private findInputBox(): HTMLElement | null {
-    const selectors = ['[contenteditable="true"]', 'textarea:not([disabled]):not([readonly])'];
+    const selectors = [
+      '[contenteditable="true"]',
+      'textarea:not([disabled]):not([readonly])'
+    ];
 
     for (const s of selectors) {
       const elements = document.querySelectorAll(s);
@@ -60,7 +57,6 @@ export class DomObserver {
     return null;
   }
 
-  //* 要素が有効な入力欄かどうかを判定
   private isVisibleInput(el: HTMLElement): boolean {
     if (!el || !el.isConnected) return false;
 
