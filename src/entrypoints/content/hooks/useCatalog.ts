@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useState, useMemo } from 'preact/hooks';
 import type { Catalog } from '@/types/catalog';
 import { getCatalog, watchCatalog } from '@/utils/storage';
+import { sortByFractionalIndex } from '@/utils/fractionalIndex';
 
 export function useCatalog() {
   const [catalog, setCatalog] = useState<Catalog>({ categories: [], items: [] });
@@ -10,5 +11,12 @@ export function useCatalog() {
     return watchCatalog(setCatalog);
   }, []);
 
-  return catalog;
+  const sortedCatalog = useMemo(() => {
+    return {
+      categories: sortByFractionalIndex(catalog.categories),
+      items: sortByFractionalIndex(catalog.items),
+    };
+  }, [catalog]);
+
+  return sortedCatalog;
 }

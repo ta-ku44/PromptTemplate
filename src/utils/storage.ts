@@ -1,6 +1,6 @@
 import { storage } from '#imports';
 import { nanoid } from 'nanoid';
-import { generateKeyBetween } from 'fractional-indexing';
+import { generateKeyBetween, sortByFractionalIndex } from '@/utils/fractionalIndex';
 import { Item, Category, Catalog } from '@/types/catalog';
 import { DEFAULT_CATALOG, DEFAULT_SETTINGS } from './defaultData';
 
@@ -19,12 +19,15 @@ export function watchCatalog(callback: (catalog: Catalog) => void) {
     callback(data);
   });
 }
+
 export async function setCatalog(newCatalog: Catalog): Promise<void> {
   await catalog.setValue(newCatalog);
 }
+
 export function getCatalog() {
   return catalog.getValue();
 }
+
 export async function resetCatalog() {
   await catalog.setValue(DEFAULT_CATALOG);
 }
@@ -41,7 +44,7 @@ export async function addItem(item: Omit<Item, 'id' | 'fractionalIndex'>) {
   const items = await getCatalogField('items');
 
   // 同一のカテゴリ内での順序から計算
-  const categoryItems = items.filter((i) => i.categoryId === item.categoryId);
+  const categoryItems = sortByFractionalIndex(items.filter((i) => i.categoryId === item.categoryId));
   const lastItem = categoryItems[categoryItems.length - 1];
 
   const newItem: Item = {
@@ -85,7 +88,9 @@ export async function getCategory(id: string): Promise<Category | undefined> {
 
 export async function addCategory(category: Omit<Category, 'id' | 'fractionalIndex'>) {
   const categories = await getCatalogField('categories');
-  const lastCategory = categories[categories.length - 1];
+
+  const sortedCategories = sortByFractionalIndex(categories);
+  const lastCategory = sortedCategories[sortedCategories.length - 1];
 
   const newCategory: Category = {
     id: nanoid(),
