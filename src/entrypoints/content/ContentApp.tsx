@@ -1,13 +1,10 @@
-import { createContext } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { useCatalog, useInputBox, useTriggerQuery } from './hooks';
 import Suggest from './components/Suggest';
 import Modal from './components/Modal';
 import AnchorLink from './components/AnchorLink';
 
-export const PortalTargetContext = createContext<HTMLElement | null>(null);
-
-export default function ContentApp({ portalTarget }: { portalTarget: HTMLElement }) {
+export default function ContentApp() {
   const { items, categories } = useCatalog();
   const { inputBox, inputBoxRef } = useInputBox();
 
@@ -26,10 +23,10 @@ export default function ContentApp({ portalTarget }: { portalTarget: HTMLElement
   }, [filteredItems, categories]);
 
   return (
-    <PortalTargetContext.Provider value={portalTarget}>
+    <>
       <Suggest items={filteredItems} categories={filteredCategories} onSelect={() => {}} />
       <Modal />
       <AnchorLink />
-    </PortalTargetContext.Provider>
+    </>
   );
 }

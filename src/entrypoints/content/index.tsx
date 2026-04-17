@@ -15,11 +15,10 @@ export default defineContentScript({
       name: 'prompt-library',
       position: 'inline',
       anchor: 'body',
-      onMount(container, shadow) {
+      onMount(container) {
         const root = document.createElement('div');
         container.append(root);
-        const portalTarget = shadow.querySelector('body')!;
-        render(<ContentApp portalTarget={portalTarget} />, root);
+        render(<ContentApp />, root);
         return root;
       },
       onRemove(root) {
