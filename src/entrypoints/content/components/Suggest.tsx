@@ -22,15 +22,20 @@ export default function Suggest({ items, categories, position, onSelect }: Sugge
 
   return (
     <div
-      className="pointer-events-auto fixed z-2147483647 min-w-48 rounded-md bg-white p-2 shadow-lg ring-1 ring-black/5"
+      className="pointer-events-auto fixed max-h-80 min-w-72 overflow-y-auto rounded-sm border border-[#969799] bg-white p-2 shadow-lg"
       style={{ top: position.top + position.height, left: position.left }}
     >
       {categories.map((category) => (
         <div key={category.id}>
-          <span>{category.name}</span>
+          <span className="text-sm font-medium text-[#A2A5AB]">{category.name.toLocaleUpperCase()}</span>
           <div>
             {itemsByCategory.get(category.id)?.map((item) => (
-              <button key={item.id} type="button" onClick={() => onSelect(item)}>
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onSelect(item)}
+                className="block w-full px-2 py-1 text-left font-normal text-[#212B50] hover:bg-[#ECF5FF]"
+              >
                 {item.name}
               </button>
             ))}
