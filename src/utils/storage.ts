@@ -1,10 +1,33 @@
-import { storage } from '#imports';
+import { storage, getAppConfig } from '#imports';
 import { nanoid } from 'nanoid';
 import { generateKeyBetween, sortByFractionalIndex } from '@/utils/fractionalIndex';
 import { Item, Category, Catalog } from '@/types/catalog';
-import { DEFAULT_CATALOG, DEFAULT_SETTINGS } from './defaultData';
 
-export const catalog = storage.defineItem<Catalog>('local:catalog', { defaultValue: DEFAULT_CATALOG, version: 1 });
+function buildDefaultCatalog(): Catalog {
+  const defaults = getAppConfig().catalog;
+  const categoryIdMap = new Map(defaults.categories.map((c) => [c.id, nanoid()]));
+  return {
+    categories: defaults.categories.map((c) => ({ ...c, id: categoryIdMap.get(c.id)! })),
+    items: defaults.items.map((i) => ({ ...i, id: nanoid(), categoryId: categoryIdMap.get(i.categoryId)! })),
+  };
+}
+
+export const catalog = storage.defineItem<Catalog>('local:catalog', { init: () => buildDefaultCatalog(), version: 1 });
+export function getCatalog() {
+  return catalog.getValue();
+}
+export async function setCatalog(newCatalog: Catalog): Promise<void> {
+  await catalog.setValue(newCatalog);
+}
+export function watchCatalog(callback: (catalog: Catalog) => void) {
+  return catalog.watch((data) => {
+    callback(data);
+  });
+}
+export async function resetCatalog() {
+  await catalog.setValue(buildDefaultCatalog());
+}
+
 async function getCatalogField<T extends keyof Catalog>(key: T): Promise<Catalog[T]> {
   const data = await catalog.getValue();
   return data[key];
@@ -12,24 +35,6 @@ async function getCatalogField<T extends keyof Catalog>(key: T): Promise<Catalog
 async function setCatalogField<T extends keyof Catalog>(key: T, value: Catalog[T]): Promise<void> {
   const data = await catalog.getValue();
   await catalog.setValue({ ...data, [key]: value });
-}
-
-export function watchCatalog(callback: (catalog: Catalog) => void) {
-  return catalog.watch((data) => {
-    callback(data);
-  });
-}
-
-export async function setCatalog(newCatalog: Catalog): Promise<void> {
-  await catalog.setValue(newCatalog);
-}
-
-export function getCatalog() {
-  return catalog.getValue();
-}
-
-export async function resetCatalog() {
-  await catalog.setValue(DEFAULT_CATALOG);
 }
 
 export async function getItem(id: string): Promise<Item | undefined> {
