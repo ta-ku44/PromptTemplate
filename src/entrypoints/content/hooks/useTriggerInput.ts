@@ -15,16 +15,13 @@ export function useTriggerInput(inputBox: HTMLElement | null, triggerKey: string
     const handler = () => {
       setQuery(detectTrigger(getTextContent(inputBox), triggerKey));
       setCursorPos(getCursorPosition(inputBox));
-    }
+    };
 
     inputBox.addEventListener('input', handler);
-    inputBox.addEventListener('keyup', handler);
-    inputBox.addEventListener('click', handler);
-
+    inputBox.addEventListener('keydown', handler);
     return () => {
       inputBox.removeEventListener('input', handler);
-      inputBox.removeEventListener('keyup', handler);
-      inputBox.removeEventListener('click', handler);
+      inputBox.removeEventListener('keydown', handler);
     };
   }, [triggerKey, inputBox]);
 

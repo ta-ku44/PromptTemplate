@@ -13,8 +13,9 @@ export function detectTrigger(text: string, key: string): string | null {
 
 type EditorType = 'Lexical' | 'ProseMirror' | undefined;
 type ProseMirrorType = 'Tiptap' | 'normal';
-interface EditorInfo { type: EditorType; proseMirrorType?: ProseMirrorType; }
-export function insertPrompt(inputBox: HTMLElement, prompt: string, triggerKey: string): void {
+interface EditorInfo { type: EditorType, proseMirrorType?: ProseMirrorType }
+export function insertPrompt(inputBox: HTMLElement | null, prompt: string, triggerKey: string): void {
+  if (!inputBox) return;
   const regex = buildTriggerRegex(triggerKey);
 
   if (inputBox instanceof HTMLTextAreaElement) {
@@ -41,20 +42,18 @@ export function insertPrompt(inputBox: HTMLElement, prompt: string, triggerKey: 
   }
 
   // TODO: 変数の検出を行う
-  
+
   inputBox.focus();
 }
 
 export type CursorPosition = { top: number; left: number; height: number };
 export function getCursorPosition(inputBox: HTMLElement): CursorPosition | null {
-  return inputBox instanceof HTMLTextAreaElement
-    ? textareaCursorPosition(inputBox)
-    : contentEditableCursorPosition();
+  return inputBox instanceof HTMLTextAreaElement ? textareaCursorPosition(inputBox) : contentEditableCursorPosition();
 }
 
 function buildTriggerRegex(key: string): RegExp {
   const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(?:^|\\r?\\n|\\s)${escapedKey}([^\\s\\r\\n]*)`);
+  return new RegExp(`(?:^|[\\r\\n\\s])${escapedKey}([^\\s\\r\\n]*)$`);
 }
 
 function detectEditorType(el: HTMLElement): EditorInfo {
