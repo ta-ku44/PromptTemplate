@@ -1,6 +1,15 @@
 @import 'tailwindcss';
 
-@theme {
-  --color-primary: rgb(29, 29, 29);
-  --color-secondary: rgb(23, 23, 23);
+:root {
+  --color-background: #ffffff;
 }
+
+[data-theme='dark'] {
+  --color-background: #1d1d1d;
+}
+
+@theme inline {
+  --color-background: var(--color-background);
+}
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
