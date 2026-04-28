@@ -8,6 +8,9 @@ export default defineContentScript({
     'https://gemini.google.com/*',
     'https://claude.ai/*',
     'https://grok.com/*',
+    'https://copilot.microsoft.com/*',
+    'https://*.github.com/*',
+    'https://*.deepseek.com/*',
   ],
   cssInjectionMode: 'ui',
   async main(ctx) {
