@@ -1,12 +1,22 @@
+import type { VariableType, VariableEntry } from '@/types/variable';
 import getCaretCoordinates from 'textarea-caret';
 
-export function getTextContent(el: HTMLElement): string {
-  return el instanceof HTMLTextAreaElement ? el.value : el.innerText;
+export function getTextBeforeCursor(el: HTMLElement): string {
+  if (el instanceof HTMLTextAreaElement) return el.value.slice(0, el.selectionStart);
+
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return '';
+
+  const range = sel.getRangeAt(0);
+  const preRange = range.cloneRange();
+  preRange.selectNodeContents(el);
+  preRange.setEnd(range.endContainer, range.endOffset);
+
+  return preRange.toString();
 }
 
 export function detectTrigger(text: string, key: string): string | null {
   const regex = buildTriggerRegex(key);
-  // TODO: カーソル位置も考慮して、トリガーがカーソルの前にあるかを判定する必要がある
   const match = text.match(regex);
   return match ? (match[1] ?? '') : null;
 }
@@ -14,7 +24,7 @@ export function detectTrigger(text: string, key: string): string | null {
 type EditorType = 'Lexical' | 'ProseMirror' | undefined;
 type ProseMirrorType = 'Tiptap' | 'normal';
 interface EditorInfo { type: EditorType, proseMirrorType?: ProseMirrorType }
-export function insertPrompt(inputBox: HTMLElement | null, prompt: string, triggerKey: string): void {
+export function injectPrompt(inputBox: HTMLElement | null, prompt: string, triggerKey: string): void {
   if (!inputBox) return;
   const regex = buildTriggerRegex(triggerKey);
 
@@ -25,35 +35,47 @@ export function insertPrompt(inputBox: HTMLElement | null, prompt: string, trigg
 
     switch (editorInfo.type) {
       case 'Lexical':
-        console.log('Detected Lexical editor');
         insertViaExecCommand(inputBox, regex, prompt);
         break;
       case 'ProseMirror':
-        console.log('Detected ProseMirror editor:', editorInfo.proseMirrorType);
         editorInfo.proseMirrorType === 'Tiptap'
           ? insertViaExecCommand(inputBox, regex, prompt)
           : insertViaInnerText(inputBox, regex, prompt);
         break;
       default:
-        console.log('Unknown editor type, using fallback insertion');
         insertViaFallback(inputBox, regex, prompt);
         break;
     }
   }
 
-  // TODO: 変数の検出を行う
-
   inputBox.focus();
 }
 
-export type CursorPosition = { top: number; left: number; height: number };
-export function getCursorPosition(inputBox: HTMLElement): CursorPosition | null {
+export function parseVariables(content: string): VariableEntry[] {
+  const seen = new Set<string>();
+  const entries: VariableEntry[] = [];
+
+  for (const match of content.matchAll(buildVariableRegex())) {
+    const [, name, type, opts] = match;
+    if (seen.has(name)) continue;
+    seen.add(name);
+    entries.push({ name, type: type as VariableType, options: opts?.split(',').map(s => s.trim()) });
+  }
+  return entries;
+}
+
+export type CaretPosition = { top: number; left: number; height: number };
+export function getCaretPosition(inputBox: HTMLElement): CaretPosition | null {
   return inputBox instanceof HTMLTextAreaElement ? textareaCursorPosition(inputBox) : contentEditableCursorPosition();
 }
 
 function buildTriggerRegex(key: string): RegExp {
   const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`(?:^|[\\r\\n\\s])${escapedKey}([^\\s\\r\\n]*)$`);
+}
+
+function buildVariableRegex(): RegExp {
+  return /\{\{(\w+):\s*(\w+)(?:\s*=\s*\[([^\]]+)\])?\}\}/g;
 }
 
 function detectEditorType(el: HTMLElement): EditorInfo {
@@ -74,8 +96,6 @@ function insertViaTextAreaValue(el: HTMLTextAreaElement, regex: RegExp, prompt: 
 
   el.value = newText;
   el.selectionStart = el.selectionEnd = newText.length;
-
-  console.log('Inserted via textarea value');
 
   el.dispatchEvent(new Event('input', { bubbles: true }));
 }
@@ -104,8 +124,6 @@ function insertViaExecCommand(el: HTMLDivElement, regex: RegExp, prompt: string,
     insertViaEvent(el, text);
   }
 
-  console.log('Inserted via execCommand');
-
   moveCursorToEnd(el);
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
@@ -118,8 +136,6 @@ function insertViaInnerText(el: HTMLDivElement, regex: RegExp, prompt: string): 
     });
 
     el.innerText = newText;
-
-    console.log('Inserted via innerText');
 
     moveCursorToEnd(el);
     el.dispatchEvent(new InputEvent('input', { bubbles: true }));
@@ -149,9 +165,7 @@ function insertViaEvent(el: HTMLDivElement, text: string): void {
       }),
     );
     el.dispatchEvent(new Event('input', { bubbles: true }));
-    console.log('Inserted via event');
   } catch (error) {
-    console.warn('Event-based insert failed:', error);
     el.textContent = text;
     el.dispatchEvent(new Event('input', { bubbles: true }));
   }
@@ -172,7 +186,7 @@ function moveCursorToEnd(el: HTMLDivElement): void {
   }
 }
 
-function textareaCursorPosition(textarea: HTMLTextAreaElement): CursorPosition {
+function textareaCursorPosition(textarea: HTMLTextAreaElement): CaretPosition {
   const coords = getCaretCoordinates(textarea, textarea.selectionStart);
   const box = textarea.getBoundingClientRect();
   return {
@@ -182,7 +196,7 @@ function textareaCursorPosition(textarea: HTMLTextAreaElement): CursorPosition {
   };
 }
 
-function contentEditableCursorPosition(): CursorPosition | null {
+function contentEditableCursorPosition(): CaretPosition | null {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return null;
 
