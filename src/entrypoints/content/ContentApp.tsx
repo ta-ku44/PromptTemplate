@@ -10,6 +10,7 @@ import AnchorLink from './components/AnchorLink';
 export default function ContentApp() {
   const { items, categories } = useCatalog();
   const { inputBox, inputBoxRef } = useInputBox();
+  const phase = useContentStore((state) => state.phase);
   const chooseItem = useContentStore((state) => state.chooseItem);
 
   // TODO: triggerKey should be customizable
@@ -34,10 +35,13 @@ export default function ContentApp() {
 
   return (
     <div className="pointer-events-none fixed top-0 left-0 z-50 h-full w-full">
-      {cursorPos && filteredItems.length > 0 && (
-        <div className="pointer-events-auto" style={{ top: cursorPos.top + cursorPos.height, left: cursorPos.left }}>
-          <Suggest items={filteredItems} categories={filteredCategories} onSelect={handleChooseItem} />
-        </div>
+      {phase.type === 'suggesting' && caretPos && (
+        <Suggest
+          items={filteredItems}
+          categories={filteredCategories}
+          onSelect={handleChooseItem}
+          style={{ top: caretPos.top + caretPos.height, left: caretPos.left }}
+        />
       )}
       <Modal />
       <AnchorLink />

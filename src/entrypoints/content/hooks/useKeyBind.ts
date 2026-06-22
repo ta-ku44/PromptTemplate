@@ -1,19 +1,17 @@
 import { useRef, useEffect } from 'preact/hooks';
 import { RefObject } from 'preact';
+import { useContentStore } from '../stores/useContentStore';
 
 type KeyBindProps = {
   key: KeyboardEvent['key'];
   onKeyDown?: (e: KeyboardEvent) => void;
   targetRef?: RefObject<HTMLElement>;
-  enabled?: boolean;
 };
 
-export function useKeyBind({ key, onKeyDown, targetRef, enabled = true }: KeyBindProps) {
+export function useKeyBind({ key, onKeyDown, targetRef }: KeyBindProps) {
   const onKeyDownLatest = useLatest(onKeyDown);
 
   useEffect(() => {
-    if (!enabled) return;
-
     const eventListener = (e: KeyboardEvent) => {
       if (e.key !== key) return;
 
@@ -29,7 +27,7 @@ export function useKeyBind({ key, onKeyDown, targetRef, enabled = true }: KeyBin
       window.addEventListener('keydown', eventListener);
       return () => window.removeEventListener('keydown', eventListener);
     }
-  }, [key, targetRef, enabled]);
+  }, [key, targetRef]);
 }
 
 function useLatest<T>(value: T) {

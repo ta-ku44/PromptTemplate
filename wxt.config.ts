@@ -12,5 +12,14 @@ export default defineConfig({
     version: '0.0.1',
     permissions: ['storage', 'tabs'],
   },
+  hooks: {
+    'vite:build:extendConfig': (eps, config) => {
+      if (!eps.some((ep) => ep.type === 'content-script')) return;
+      config.resolve = {
+        ...config.resolve,
+        alias: { ...config.resolve?.alias, react: 'preact/compat', 'react-dom': 'preact/compat' },
+      };
+    },
+  },
   srcDir: 'src',
 });

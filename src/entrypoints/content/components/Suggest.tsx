@@ -1,17 +1,19 @@
 import { useState, useEffect, useMemo } from 'preact/hooks';
+import { useContentStore } from '../stores/useContentStore';
 import { useKeyBind } from '../hooks';
-import { Category, Item } from '@/types/catalog';
-import { CursorPosition } from '../utils/inputBox';
+import type { CSSProperties } from 'preact';
+import type { Category, Item } from '@/types/catalog';
 
 interface SuggestProps {
   items: Item[];
   categories: Category[];
-  position: CursorPosition | null;
   onSelect: (item: Item) => void;
+  style: CSSProperties;
 }
 
-export default function Suggest({ items, categories, position, onSelect }: SuggestProps) {
+export default function Suggest({ items, categories, onSelect, style }: SuggestProps) {
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
+  const resetFlow = useContentStore((state) => state.resetFlow);
 
   useEffect(() => {
     setFocusedIndex(0);
@@ -30,40 +32,37 @@ export default function Suggest({ items, categories, position, onSelect }: Sugge
     [categories, itemsByCategory],
   );
 
-  const isVisible = items.length > 0 && position !== null;
+  useKeyBind({ key: 'ArrowDown', onKeyDown: () => setFocusedIndex((i) => Math.min(i + 1, flatItems.length - 1)) });
+  useKeyBind({ key: 'ArrowUp', onKeyDown: () => setFocusedIndex((i) => Math.max(i - 1, 0)) });
+  useKeyBind({ key: 'Tab', onKeyDown: () => onSelect(flatItems[focusedIndex]) });
+  useKeyBind({ key: 'Escape', onKeyDown: () => resetFlow() });
 
-  useKeyBind({ key: 'ArrowDown', enabled: isVisible, onKeyDown: () => setFocusedIndex((i) => Math.min(i + 1, flatItems.length - 1)) });
-  useKeyBind({ key: 'ArrowUp', enabled: isVisible, onKeyDown: () => setFocusedIndex((i) => Math.max(i - 1, 0)) });
-  useKeyBind({ key: 'Tab', enabled: isVisible, onKeyDown: () => onSelect(flatItems[focusedIndex]) });
-
-  if (items.length === 0 || position === null) return null;
+  if (items.length === 0) return null;
   let flatIndex = 0;
 
   return (
-    <div
-      className="pointer-events-auto fixed max-h-80 min-w-72 overflow-y-auto overscroll-none rounded-sm border border-[#969799] bg-white p-3 shadow-lg"
-      style={{ top: position.top + position.height, left: position.left }}
-    >
-      {categories.map((category) => (
-        <div className="mb-3 last:mb-0" key={category.id}>
-          <span className="mb-1 text-xs font-medium text-[#A2A5AB]">{category.name.toLocaleUpperCase()}</span>
-          <div>
-            {itemsByCategory.get(category.id)?.map((item) => {
-              const index = flatIndex++;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onSelect(item)}
-                  className={`block w-full border-b border-[#E9E9E9] px-2 py-1.5 text-left font-normal text-[#212B50] ${index === focusedIndex ? 'bg-[#ddeeff]' : 'hover:bg-[#ECF5FF]'}`}
-                >
-                  {item.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+    <div className="pointer-events-auto fixed" style={style}>
+      <ul role="listbox" className="max-h-80 min-w-72 overflow-y-auto overscroll-none rounded-sm border bg-card p-3 shadow-sm">
+        {categories.map((category) => (
+          <li className="mb-3 last:mb-0" key={category.id} role="group" aria-labelledby={`category-${category.id}`}>
+            <span id={`category-${category.id}`} className="mb-1 text-xs font-medium text-foreground-muted uppercase">
+              {category.name}
+            </span>
+            <ul>
+              {itemsByCategory.get(category.id)?.map((item) => {
+                const index = flatIndex++;
+                return (
+                  <li key={item.id} className="border-b">
+                    <button type="button" role="option" aria-selected={index === focusedIndex} onClick={() => onSelect(item)} className={`block w-full px-2 py-1.5 text-left font-normal ${index === focusedIndex ? 'bg-sky-100' : 'hover:bg-accent'}`}>
+                      {item.name}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
