@@ -1,26 +1,27 @@
 import { StateCreator } from 'zustand';
 import type { Item } from '@/types/catalog';
-import type { VariableEntry } from '@/types/variable';
+import type { VariableAnchor } from '@/types/variable';
 
-type IdlePhase = { type: 'idle' };
-type SuggestingPhase = { type: 'suggesting' };
-type VariablePhase = { type: 'variable'; item: Item; entries: VariableEntry[] };
-type AnchoredPhase = { type: 'anchored' };
-
-type FlowPhase = IdlePhase | SuggestingPhase | VariablePhase | AnchoredPhase;
+type FlowPhase =
+  | { kind: 'idle' }
+  | { kind: 'suggestion'; query: string }
+  | { kind: 'confirming'; prompt: Item; variableValues: Record<string, unknown> }
+  | { kind: 'anchored'; prompt: Item; anchors: VariableAnchor[] };
 
 export interface FlowSlice {
   phase: FlowPhase;
-  openSuggest: () => void;
-  chooseItem: (item: Item, entries: VariableEntry[]) => void;
-  confirmVariables: (values: Record<string, string>) => void;
+  startSuggestion: (query: string) => void;
+  chooseItem: (prompt: Item) => void;
+  setVariableValue: (variableName: string, value: unknown) => void;
+  anchorInsertion: (anchors: VariableAnchor[]) => void;
   resetFlow: () => void;
 }
 
 export const createFlowSlice: StateCreator<FlowSlice> = (set) => ({
-  phase: { type: 'idle' },
-  openSuggest: () => set({ phase: { type: 'suggesting' } }),
-  chooseItem: (item, entries) => set({ phase: entries.length > 0 ? { type: 'variable', item, entries } : { type: 'idle' } }),
-  confirmVariables: (_values) => set({ phase: { type: 'anchored' } }),
-  resetFlow: () => set({ phase: { type: 'idle' } }),
+  phase: { kind: 'idle' },
+  startSuggestion: (query) => set({ phase: { kind: 'suggestion', query } }),
+  chooseItem: (prompt) => set((state) => (state.phase.kind === 'suggestion' ? { phase: { kind: 'confirming', prompt, variableValues: {} } } : {})),
+  setVariableValue: (variableName, value) => set((state) => (state.phase.kind === 'confirming' ? { phase: { ...state.phase, variableValues: { ...state.phase.variableValues, [variableName]: value } } } : {})),
+  anchorInsertion: (anchors) => set((state) => (state.phase.kind === 'confirming' ? { phase: { kind: 'anchored', prompt: state.phase.prompt, anchors } } : {})),
+  resetFlow: () => set({ phase: { kind: 'idle' } }),
 });

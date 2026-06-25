@@ -6,7 +6,7 @@ export function useTriggerInput(inputBox: HTMLElement | null, triggerKey: string
   // TODO: Move query/caretPos state to Zustand session slice and make this hook a store updater only.
   const [query, setQuery] = useState<string | null>(null);
   const [caretPos, setCaretPos] = useState<CaretPosition | null>(null);
-  const openSuggest = useContentStore((state) => state.openSuggest);
+  const openSuggest = useContentStore((state) => state.startSuggestion);
   const resetFlow = useContentStore((state) => state.resetFlow);
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export function useTriggerInput(inputBox: HTMLElement | null, triggerKey: string
 
       setQuery(nextQuery);
       setCaretPos(getCaretPosition(inputBox));
-      nextQuery !== null ? openSuggest() : resetFlow();
+      nextQuery !== null ? openSuggest(nextQuery) : resetFlow();
     };
 
     const handler = () => {

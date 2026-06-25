@@ -27,19 +27,12 @@ export default function ContentApp() {
     return categories.filter((category) => ids.has(category.id));
   }, [filteredItems, categories]);
 
-  const handleChooseItem = (item: Item) => {
-    const entries = parseVariables(item.content);
-    injectPrompt(inputBoxRef.current, item.content, '#');
-    chooseItem(item, entries);
-  };
-
   return (
     <div className="pointer-events-none fixed top-0 left-0 z-50 h-full w-full">
-      {phase.type === 'suggesting' && caretPos && (
+      {caretPos && (
         <Suggest
           items={filteredItems}
           categories={filteredCategories}
-          onSelect={handleChooseItem}
           style={{ top: caretPos.top + caretPos.height, left: caretPos.left }}
         />
       )}

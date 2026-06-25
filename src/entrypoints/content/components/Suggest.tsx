@@ -7,12 +7,13 @@ import type { Category, Item } from '@/types/catalog';
 interface SuggestProps {
   items: Item[];
   categories: Category[];
-  onSelect: (item: Item) => void;
   style: CSSProperties;
 }
 
-export default function Suggest({ items, categories, onSelect, style }: SuggestProps) {
+export default function Suggest({ items, categories, style }: SuggestProps) {
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
+  const phase = useContentStore((state) => state.phase);
+  const onSelect = useContentStore((state) => state.chooseItem);
   const resetFlow = useContentStore((state) => state.resetFlow);
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export default function Suggest({ items, categories, onSelect, style }: SuggestP
   useKeyBind({ key: 'Tab', onKeyDown: () => onSelect(flatItems[focusedIndex]) });
   useKeyBind({ key: 'Escape', onKeyDown: () => resetFlow() });
 
-  if (items.length === 0) return null;
+  if (phase.kind !== 'suggestion' || items.length === 0) return null;
   let flatIndex = 0;
 
   return (

@@ -1,4 +1,4 @@
-import type { VariableType, VariableEntry } from '@/types/variable';
+import type { VariableType, VariableAnchor } from '@/types/variable';
 import getCaretCoordinates from 'textarea-caret';
 
 export function getTextBeforeCursor(el: HTMLElement): string {
@@ -51,9 +51,9 @@ export function injectPrompt(inputBox: HTMLElement | null, prompt: string, trigg
   inputBox.focus();
 }
 
-export function parseVariables(content: string): VariableEntry[] {
+export function parseVariables(content: string): VariableAnchor[] {
   const seen = new Set<string>();
-  const entries: VariableEntry[] = [];
+  const entries: VariableAnchor[] = [];
 
   for (const match of content.matchAll(buildVariableRegex())) {
     const [, name, type, opts] = match;
