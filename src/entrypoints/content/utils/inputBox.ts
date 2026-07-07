@@ -1,29 +1,12 @@
-import getCaretCoordinates from 'textarea-caret';
+import { offset } from 'caret-pos';
+import { insert as insertIntoEditor } from './textEditor/taxonomy';
 
 export type CaretRect = { top: number; left: number; height: number };
 
 export function getCaretRect(inputBox: HTMLElement): CaretRect | null {
-  if (inputBox instanceof HTMLTextAreaElement || inputBox instanceof HTMLInputElement) {
-    const c = getCaretCoordinates(inputBox, inputBox.selectionStart ?? 0);
-    const box = inputBox.getBoundingClientRect();
-    return { top: box.top + c.top - inputBox.scrollTop, left: box.left + c.left, height: c.height };
-  }
-
-  const sel = window.getSelection();
-  if (!sel?.rangeCount) return null;
-
-  const range = sel.getRangeAt(0).cloneRange();
-  range.collapse(true);
-
-  // カーソル位置に一時的な要素を作成して、その位置を取得
-  const span = document.createElement('span');
-  span.textContent = '\u200b';
-  range.insertNode(span);
-
-  const rect = span.getBoundingClientRect();
-  span.remove();
-
-  return { top: rect.top, left: rect.left, height: rect.height };
+  const o = offset(inputBox);
+  if (!o) return null;
+  return { top: o.top - window.pageYOffset, left: o.left - window.pageXOffset, height: o.height };
 }
 
 export function getTextBeforeCursor(el: HTMLElement): string {
@@ -53,7 +36,6 @@ export function detectTrigger(text: string, key: string): string | null {
 
 export function injectPrompt(inputBox: HTMLElement, prompt: string, key: string): void {
   const regex = buildTriggerRegex(key);
-
-  // TODO: テキストエディタに合わせて抽象化してそれを実行する
+  insertIntoEditor(inputBox, regex, prompt);
   inputBox.focus();
 }
