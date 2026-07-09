@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'preact/hooks';
 import { RefObject } from 'preact';
-import { useContentStore } from '../stores/useContentStore';
 
 type KeyBindProps = {
   key: KeyboardEvent['key'];

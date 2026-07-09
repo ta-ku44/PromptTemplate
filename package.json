@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@dnd-kit/react": "^0.3.2",
-    "@uiw/react-codemirror": "^4.25.9",
     "@wxt-dev/storage": "^1.2.7",
     "caret-pos": "^2.0.0",
     "fractional-indexing": "^3.2.0",
@@ -36,8 +35,8 @@
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4.2.0",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4",
     "wxt": "^0.20.24"
   }
 }
