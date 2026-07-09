@@ -1,22 +1,20 @@
 import { StateCreator } from 'zustand';
+import { hasVariables, applyValues } from '../../utils/variables';
 import type { Item } from '@/types/catalog';
-import type { VariableAnchor } from '@/types/variable';
 import type { CaretRect } from '../../utils/inputBox';
 
 type FlowPhase =
   | { kind: 'idle' }
   | { kind: 'suggestion'; query: string; caretPosition: CaretRect | null }
   | { kind: 'confirming'; prompt: Item; values: Record<string, unknown> }
-  | { kind: 'injecting'; prompt: Item }
-  | { kind: 'anchored'; prompt: Item; anchors: VariableAnchor[] };
+  | { kind: 'injecting'; text: string };
 
 export interface FlowSlice {
   phase: FlowPhase;
   updateSuggestion: (query: string, caretPosition: CaretRect | null) => void;
   chooseItem: (prompt: Item) => void;
   setVariableValue: (variableName: string, value: unknown) => void;
-  confirmVariables: () => void;
-  anchorInsertion: (anchors: VariableAnchor[]) => void;
+  confirm: () => void;
   resetFlow: () => void;
 }
 
@@ -33,10 +31,11 @@ export const createFlowSlice: StateCreator<FlowSlice> = (set) => {
   return {
     phase: { kind: 'idle' },
     updateSuggestion: (query, caretPosition) => set({ phase: { kind: 'suggestion', query, caretPosition } }),
-    chooseItem: (prompt): void => guard('suggestion', (_) => ({ kind: 'injecting', prompt })),
+    chooseItem: (prompt) => guard('suggestion', (_) => hasVariables(prompt.content)
+      ? { kind: 'confirming', prompt, values: {} }
+      : { kind: 'injecting', text: prompt.content }),
     setVariableValue: (name, value) => guard('confirming', (p) => ({ ...p, values: { ...p.values, [name]: value } })),
-    confirmVariables: () => guard('confirming', (p) => ({ kind: 'injecting', prompt: p.prompt })),
-    anchorInsertion: (anchors) => guard('injecting', (p) => ({ kind: 'anchored', prompt: p.prompt, anchors })),
+    confirm: () => guard('confirming', (p) => ({ kind: 'injecting', text: applyValues(p.prompt.content, p.values) })),
     resetFlow: () => set({ phase: { kind: 'idle' } }),
   };
 };

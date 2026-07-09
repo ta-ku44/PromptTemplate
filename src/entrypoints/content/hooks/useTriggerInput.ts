@@ -1,6 +1,6 @@
 import { useEffect } from 'preact/hooks';
 import { useContentStore } from '../stores/useContentStore';
-import { getTextBeforeCursor, detectTrigger, getCaretRect, type CaretRect } from '../utils/inputBox';
+import { getTextBeforeCursor, detectTrigger, getCaretRect } from '../utils/inputBox';
 
 export function useTriggerInput(inputBox: HTMLElement | null, triggerKey: string) {
   const updateSuggestion = useContentStore((state) => state.updateSuggestion);

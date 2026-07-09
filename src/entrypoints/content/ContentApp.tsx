@@ -16,15 +16,15 @@ export default function ContentApp() {
   useEffect(() => {
     if (kind !== 'injecting') return;
     const { phase, resetFlow } = useContentStore.getState();
-    if (inputBoxRef.current && phase.kind === 'injecting') injectPrompt(inputBoxRef.current, phase.prompt.content, '#');
+    if (inputBoxRef.current && phase.kind === 'injecting') injectPrompt(inputBoxRef.current, phase.text, '#');
     resetFlow();
   }, [kind]);
 
   return (
     <div className="pointer-events-none fixed top-0 left-0 z-50 h-full w-full">
-      {kind === 'suggestion' && <Suggest />}
-      {kind === 'confirming' && <Modal />}
-      {kind === 'anchored' && <AnchorLink />}
+      <Suggest />
+      <Modal />
+      <AnchorLink />
     </div>
   );
 }
