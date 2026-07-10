@@ -13,10 +13,10 @@
 :root {
   --background: #ffffff;
   --foreground: #000000;
-  --foreground-muted: #A2A5AB;
+  --foreground-muted: #a2a5ab;
   --border: #d3dae0;
-  --card: #ffffff;
-  --accent: #ecf5ff;
+  --card: var(--color-white);
+  --accent: var(--color-blue-50);
 }
 
 /*[data-theme='dark'] {
@@ -30,4 +30,28 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer components {
+  dialog.modal {
+    transition: opacity 0.2s ease, scale 0.2s ease, display 0.2s allow-discrete, overlay 0.2s allow-discrete;
+    opacity: 1;
+    scale: 1;
+  }
+  dialog.modal:not([open]) {
+    opacity: 0;
+    scale: 0.95;
+  }
+  dialog.modal::backdrop {
+    transition: background-color 0.2s ease, display 0.2s allow-discrete, overlay 0.2s allow-discrete;
+    background-color: rgb(0 0 0 / 0.35);
+  }
+  dialog.modal:not([open])::backdrop {
+    background-color: rgb(0 0 0 / 0);
+  }
+}
+
+@starting-style {
+  dialog.modal[open] { opacity: 0; scale: 0.95; }
+  dialog.modal[open]::backdrop { background-color: rgb(0 0 0 / 0); }
 }
