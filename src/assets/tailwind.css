@@ -4,24 +4,34 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-foreground-muted: var(--foreground-muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-card: var(--card);
   --color-accent: var(--accent);
+  --color-accent-focus: var(--accent-focus);
+
+  --color-sidebar-background: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
 }
 
 :root {
-  --background: #ffffff;
+  --background: "#ffffff";
   --foreground: #000000;
-  --foreground-muted: #a2a5ab;
+  --muted: rgb(0 0 0 / 0.5);
+  --muted-foreground: #a2a5ab;
+
   --border: #d3dae0;
   --card: var(--color-white);
   --accent: var(--color-blue-50);
+  --accent-focus: var(--color-blue-100);
+
+  --sidebar-background: rgb(29, 29, 29);
+  --sidebar-foreground: #ffffff;
 }
 
-/*[data-theme='dark'] {
-  --background: #1d1d1d;
-}*/
+[data-theme='dark'] {
+  --background: rgb(29, 29, 29);
+}
 
 @layer base {
   * {
