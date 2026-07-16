@@ -5,8 +5,10 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
+
   --color-border: var(--border);
   --color-card: var(--card);
+
   --color-accent: var(--accent);
   --color-accent-focus: var(--accent-focus);
 
@@ -15,17 +17,17 @@
 }
 
 :root {
-  --background: "#ffffff";
-  --foreground: #000000;
-  --muted: rgb(0 0 0 / 0.5);
-  --muted-foreground: #a2a5ab;
+  --background: #f7f4ef;
+  --foreground: #1f2328;
+  --muted-foreground: #71717a;
 
   --border: #d3dae0;
-  --card: var(--color-white);
+  --card: #ffffff;
+
   --accent: var(--color-blue-50);
   --accent-focus: var(--color-blue-100);
 
-  --sidebar-background: rgb(29, 29, 29);
+  --sidebar-background: #28292d;
   --sidebar-foreground: #ffffff;
 }
 
@@ -44,7 +46,11 @@
 
 @layer components {
   dialog.modal {
-    transition: opacity 0.2s ease, scale 0.2s ease, display 0.2s allow-discrete, overlay 0.2s allow-discrete;
+    transition:
+      opacity 0.2s ease,
+      scale 0.2s ease,
+      display 0.2s allow-discrete,
+      overlay 0.2s allow-discrete;
     opacity: 1;
     scale: 1;
   }
@@ -53,7 +59,10 @@
     scale: 0.95;
   }
   dialog.modal::backdrop {
-    transition: background-color 0.2s ease, display 0.2s allow-discrete, overlay 0.2s allow-discrete;
+    transition:
+      background-color 0.2s ease,
+      display 0.2s allow-discrete,
+      overlay 0.2s allow-discrete;
     background-color: rgb(0 0 0 / 0.35);
   }
   dialog.modal:not([open])::backdrop {
@@ -62,6 +71,11 @@
 }
 
 @starting-style {
-  dialog.modal[open] { opacity: 0; scale: 0.95; }
-  dialog.modal[open]::backdrop { background-color: rgb(0 0 0 / 0); }
+  dialog.modal[open] {
+    opacity: 0;
+    scale: 0.95;
+  }
+  dialog.modal[open]::backdrop {
+    background-color: rgb(0 0 0 / 0);
+  }
 }
