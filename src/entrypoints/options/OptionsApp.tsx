@@ -1,4 +1,4 @@
-import { Router, Route } from 'wouter';
+import { Router, Route, Redirect } from 'wouter';
 import { useHashLocation } from 'wouter/use-hash-location';
 import Layout from './components/layouts/Layout';
 import General from './components/pages/General';
@@ -9,6 +9,7 @@ export default function OptionsApp() {
   return (
     <Router hook={useHashLocation}>
       <Layout>
+        <Route path="/" component={() => <Redirect to="/general" />} />
         <Route path="/general" component={General} />
         <Route path="/platform" component={Platform} />
         <Route path="/prompts" component={Prompts} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 
 export default function Sidebar() {
@@ -15,8 +15,8 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="grid h-screen w-full grid-rows-[auto_1fr_auto] bg-[#1d1d1d] text-white">
-      <div className="p-4"/>
+    <aside className="grid h-screen w-full grid-rows-[auto_1fr_auto] bg-sidebar-background text-sidebar-foreground">
+      <header className="p-4">Prompt Library</header>
       {/* Top : Brand
        * Logo
        * Title
@@ -33,7 +33,7 @@ export default function Sidebar() {
        * Prompts
        */}
 
-      <div className="p-4">Tools</div>
+      <footer className="p-4">Tools</footer>
       {/* Bottom : Utilities
        * Theme Toggle
        * Github Repository Link
