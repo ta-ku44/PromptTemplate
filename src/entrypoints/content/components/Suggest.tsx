@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
 import { useShallow } from 'zustand/shallow';
-import { useCatalog, useKeyBind } from '../hooks';
+import { useCatalog, useKeyBind } from '@/hooks';
 import { useContentStore } from '../stores/useContentStore';
 
 export default function Suggest() {

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'preact/hooks';
+import { useEffect, useState, useMemo } from 'react';
 import type { Catalog } from '@/types/catalog';
 import { getCatalog, watchCatalog } from '@/utils/storage';
 import { sortByFractionalIndex } from '@/utils/fractionalIndex';

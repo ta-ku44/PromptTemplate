@@ -1,7 +1,8 @@
+import { useRef } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
 import * as m from 'motion/react-m';
+import { useShallow } from 'zustand/react/shallow';
 import { updateItem, deleteItem } from '@/utils/storage';
-import { useShallow } from 'zustand/shallow';
 import type { Item } from '@/types/catalog';
 
 type ItemBarProps = {
@@ -11,8 +12,8 @@ type ItemBarProps = {
 
 export const ItemBar = ({ item, onEditRequest }: ItemBarProps) => {
   const elementRef = useRef<HTMLDivElement>(null);
-  const { ref: dragRef } = useDraggable({ id: item.id, type: 'item', element: elementRef });
-  const { ref: dropRef } = useDroppable({ id: item.id, type: 'item', element: elementRef });
+  useDraggable({ id: item.id, type: 'item', element: elementRef });
+  useDroppable({ id: item.id, type: 'item', element: elementRef });
 
   return (
     <m.div ref={elementRef} layout={true}>
