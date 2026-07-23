@@ -5,7 +5,6 @@ import { useContentStore } from '../stores/useContentStore';
 
 export default function Suggest() {
   const [focusedIndex, setFocusedIndex] = useState<number>(0);
-  const ref = useRef<HTMLDivElement>(null);
   const { items, categories } = useCatalog();
   const { phase, onSelect, resetFlow } = useContentStore(
     useShallow((state) => ({ phase: state.phase, onSelect: state.chooseItem, resetFlow: state.resetFlow })),
@@ -42,11 +41,7 @@ export default function Suggest() {
 
   return (
     <div className="pointer-events-auto fixed" style={{ top: caretPos.top + caretPos.height, left: caretPos.left }}>
-      <ul
-        role="listbox"
-        aria-activedescendant={focusedId ? `suggest-option-${focusedId}` : undefined}
-        className="max-h-80 min-w-72 overflow-y-auto overscroll-none rounded-sm border bg-card p-3 shadow-sm"
-      >
+      <ul role="listbox" aria-activedescendant={focusedId ? `suggest-option-${focusedId}` : undefined} className="max-h-80 min-w-72 overflow-y-auto overscroll-none rounded-sm border bg-card p-3 shadow-sm">
         {groups.map(({ category, items }) => (
           <li className="mb-3 last:mb-0" key={category.id} role="group" aria-labelledby={`cat-${category.id}`}>
             <span id={`cat-${category.id}`} className="mb-1 block text-xs font-medium text-muted-foreground uppercase">
@@ -55,14 +50,7 @@ export default function Suggest() {
             <ul>
               {items.map((item) => (
                 <li key={item.id} className="border-b">
-                  <button
-                    id={`suggest-option-${item.id}`}
-                    type="button"
-                    role="option"
-                    aria-selected={item.id === focusedId}
-                    onClick={() => onSelect(item)}
-                    className={`block w-full px-2 py-1.5 text-left font-normal ${item.id === focusedId ? 'bg-accent-focus' : 'hover:bg-accent'}`}
-                  >
+                  <button id={`suggest-option-${item.id}`} type="button" role="option" aria-selected={item.id === focusedId} onClick={() => onSelect(item)} className={`block w-full px-2 py-1.5 text-left font-normal ${item.id === focusedId ? 'bg-accent-focus' : 'hover:bg-accent'}`}>
                     {item.name}
                   </button>
                 </li>

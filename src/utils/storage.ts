@@ -1,127 +1,84 @@
 import { storage, getAppConfig } from '#imports';
 import { nanoid } from 'nanoid';
 import { generateKeyBetween, sortByFractionalIndex } from '@/utils/fractionalIndex';
-import { Item, Category, Catalog } from '@/types/catalog';
+import { Catalog } from '@/types/catalog';
 
-function buildDefaultCatalog(): Catalog {
-  const defaults = getAppConfig().catalog;
-  const categoryIdMap = new Map(defaults.categories.map((c) => [c.id, nanoid()]));
-  return {
-    categories: defaults.categories.map((c) => ({ ...c, id: categoryIdMap.get(c.id)! })),
-    items: defaults.items.map((i) => ({ ...i, id: nanoid(), categoryId: categoryIdMap.get(i.categoryId)! })),
-  };
-}
+const catalog = storage.defineItem<Catalog>('local:catalog', { init: () => getAppConfig().catalog, version: 1 });
 
-export const catalog = storage.defineItem<Catalog>('local:catalog', { init: () => buildDefaultCatalog(), version: 1 });
-export function getCatalog() {
-  return catalog.getValue();
-}
-export async function setCatalog(newCatalog: Catalog): Promise<void> {
-  await catalog.setValue(newCatalog);
-}
-export function watchCatalog(callback: (catalog: Catalog) => void) {
-  return catalog.watch((data) => {
-    callback(data);
-  });
-}
-export async function resetCatalog() {
-  await catalog.setValue(buildDefaultCatalog());
-}
+type Key = keyof Catalog;
+type Entity = { id: string; fractionalIndex: string };
 
-async function getCatalogField<T extends keyof Catalog>(key: T): Promise<Catalog[T]> {
-  const data = await catalog.getValue();
-  return data[key];
-}
-async function setCatalogField<T extends keyof Catalog>(key: T, value: Catalog[T]): Promise<void> {
-  const data = await catalog.getValue();
-  await catalog.setValue({ ...data, [key]: value });
-}
+const getCatalogField = async <T extends Key>(field: T): Promise<Catalog[T]> => {
+  const catalogValue = await catalog.getValue();
+  return catalogValue[field];
+};
 
-export async function getItem(id: string): Promise<Item | undefined> {
-  const items = await getCatalogField('items');
-  return new Map(items.map((i) => [i.id, i])).get(id);
-}
+const setCatalogField = async <T extends Key>(field: T, value: Catalog[T]): Promise<void> => {
+  const catalogValue = await catalog.getValue();
+  await catalog.setValue({ ...catalogValue, [field]: value });
+};
 
-export async function addItem(item: Omit<Item, 'id' | 'fractionalIndex'>) {
-  const category = await getCategory(item.categoryId);
-  if (!category) throw new Error('Category not found');
+type Draft<T extends Key> = Omit<Catalog[T][number], 'id' | 'fractionalIndex'>;
 
-  const items = await getCatalogField('items');
+const referenceChecks: { [K in Key]?: (entity: Partial<Draft<K>>) => Promise<void> } = {
+  // categoryIdが指すカテゴリが実在するか確認
+  items: async (item) => {
+    if (!item.categoryId) return;
+    const categories = await getCatalogField('categories');
+    if (!categories.some((c) => c.id === item.categoryId)) {
+      throw new Error(`Category not found: ${item.categoryId}`);
+    }
+  },
+};
 
-  // 同一のカテゴリ内での順序から計算
-  const categoryItems = sortByFractionalIndex(items.filter((i) => i.categoryId === item.categoryId));
-  const lastItem = categoryItems[categoryItems.length - 1];
+const addEntity = async <T extends Key>(field: T, entity: Draft<T>) => {
+  await referenceChecks[field]?.(entity);
 
-  const newItem: Item = {
-    id: nanoid(),
-    ...item,
-    fractionalIndex: generateKeyBetween(lastItem?.fractionalIndex, null),
-  };
-  await setCatalogField('items', [...items, newItem]);
-}
+  const list = await getCatalogField(field);
 
-export async function updateItem(id: string, updatedFields: Partial<Omit<Item, 'id' | 'fractionalIndex'>>) {
-  if (updatedFields.categoryId) {
-    const category = await getCategory(updatedFields.categoryId);
-    if (!category) throw new Error('Category not found');
-  }
+  // 末尾に挿入するため、正しい順序に並び替えてから最後の要素を取得
+  const sorted = sortByFractionalIndex(list as Entity[]);
+  const last = sorted[sorted.length - 1];
 
-  const items = await getCatalogField('items');
+  const newEntity = {
+    id: nanoid(8),
+    ...entity,
+    fractionalIndex: generateKeyBetween(last?.fractionalIndex, null),
+  } as Catalog[T][number];
+  await setCatalogField(field, [...list, newEntity] as Catalog[T]);
+};
 
-  const map = new Map(items.map((i) => [i.id, i]));
-  const existing = map.get(id);
-  if (!existing) throw new Error('Item not found');
+const updateEntity = async <T extends Key>(field: T, id: string, entity: Partial<Draft<T>>) => {
+  await referenceChecks[field]?.(entity);
 
-  map.set(id, { ...existing, ...updatedFields });
-  await setCatalogField('items', [...map.values()]);
-}
+  const list = await getCatalogField(field);
 
-export async function deleteItem(id: string) {
-  const items = await getCatalogField('items');
+  // 存在確認と、更新位置の特定を兼ねてindexを取得
+  const index = (list as Entity[]).findIndex((entity) => entity.id === id);
+  if (index === -1) throw new Error(`${field} entity not found: ${id}`);
 
-  const map = new Map(items.map((i) => [i.id, i]));
-  if (!map.has(id)) throw new Error('Item not found');
+  const updated = [...list] as Catalog[T];
+  updated[index] = { ...updated[index], ...entity } as Catalog[T][number];
 
-  map.delete(id);
-  await setCatalogField('items', [...map.values()]);
-}
+  await setCatalogField(field, updated);
+};
 
-export async function getCategory(id: string): Promise<Category | undefined> {
-  const categories = await getCatalogField('categories');
-  return new Map(categories.map((c) => [c.id, c])).get(id);
-}
+const deleteEntity = async <T extends Key>(field: T, id: string) => {
+  const list = await getCatalogField(field);
 
-export async function addCategory(category: Omit<Category, 'id' | 'fractionalIndex'>) {
-  const categories = await getCatalogField('categories');
+  const exists = (list as Entity[]).some((entity) => entity.id === id);
+  if (!exists) throw new Error(`${field} entity not found: ${id}`);
 
-  const sortedCategories = sortByFractionalIndex(categories);
-  const lastCategory = sortedCategories[sortedCategories.length - 1];
+  await setCatalogField(field, (list as Entity[]).filter((entity) => entity.id !== id) as Catalog[T]);
+};
 
-  const newCategory: Category = {
-    id: nanoid(),
-    ...category,
-    fractionalIndex: generateKeyBetween(lastCategory?.fractionalIndex, null),
-  };
-  await setCatalogField('categories', [...categories, newCategory]);
-}
+export const getCatalog = () => catalog.getValue();
+export const watchCatalog = (callback: (catalog: Catalog) => void) => catalog.watch(callback);
 
-export async function updateCategory(id: string, updatedFields: Partial<Omit<Category, 'id' | 'fractionalIndex'>>) {
-  const categories = await getCatalogField('categories');
+export const addItem = (item: Draft<'items'>) => addEntity('items', item);
+export const updateItem = (id: string, item: Partial<Draft<'items'>>) => updateEntity('items', id, item);
+export const deleteItem = (id: string) => deleteEntity('items', id);
 
-  const map = new Map(categories.map((c) => [c.id, c]));
-  const existing = map.get(id);
-  if (!existing) throw new Error('Category not found');
-
-  map.set(id, { ...existing, ...updatedFields });
-  await setCatalogField('categories', [...map.values()]);
-}
-
-export async function deleteCategory(id: string) {
-  const categories = await getCatalogField('categories');
-
-  const map = new Map(categories.map((c) => [c.id, c]));
-  if (!map.has(id)) throw new Error('Category not found');
-
-  map.delete(id);
-  await setCatalogField('categories', [...map.values()]);
-}
+export const addCategory = (category: Draft<'categories'>) => addEntity('categories', category);
+export const updateCategory = (id: string, category: Partial<Draft<'categories'>>) => updateEntity('categories', id, category);
+export const deleteCategory = (id: string) => deleteEntity('categories', id);

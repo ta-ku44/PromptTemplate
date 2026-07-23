@@ -10,7 +10,7 @@ export default function ContentApp() {
   const { inputBox, inputBoxRef } = useInputBox();
   const kind = useContentStore((state) => state.phase.kind);
 
-  // TODO: triggerKey should be customizable
+  // TODO: トリガーキーを設定から取得するようにする
   useTriggerInput(inputBox, '#');
 
   useEffect(() => {

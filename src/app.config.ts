@@ -11,7 +11,7 @@ declare module 'wxt/utils/define-app-config' {
 
 export default defineAppConfig({
   catalog: {
-    // * IDs are replaced with nanoid on initial storage seeding.
+    // seed時にIDをnanoidで置き換えているため、実データとは異なるIDが設定される
     items: [
       { id: '1', name: 'summarize', content: '', categoryId: '1', fractionalIndex: 'a0' },
       { id: '2', name: 'explain', content: '', categoryId: '1', fractionalIndex: 'a1' },
