@@ -19,8 +19,9 @@ const setCatalogField = async <T extends Key>(field: T, value: Catalog[T]): Prom
 };
 
 type Draft<T extends Key> = Omit<Catalog[T][number], 'id' | 'fractionalIndex'>;
+type Writable<T extends Key> = Omit<Catalog[T][number], 'id'>;
 
-const referenceChecks: { [K in Key]?: (entity: Partial<Draft<K>>) => Promise<void> } = {
+const referenceChecks: { [K in Key]?: (entity: Partial<Writable<K>>) => Promise<void> } = {
   // categoryIdが指すカテゴリが実在するか確認
   items: async (item) => {
     if (!item.categoryId) return;
@@ -32,7 +33,7 @@ const referenceChecks: { [K in Key]?: (entity: Partial<Draft<K>>) => Promise<voi
 };
 
 const addEntity = async <T extends Key>(field: T, entity: Draft<T>) => {
-  await referenceChecks[field]?.(entity);
+  await referenceChecks[field]?.(entity as Partial<Writable<T>>);
 
   const list = await getCatalogField(field);
 
@@ -48,7 +49,7 @@ const addEntity = async <T extends Key>(field: T, entity: Draft<T>) => {
   await setCatalogField(field, [...list, newEntity] as Catalog[T]);
 };
 
-const updateEntity = async <T extends Key>(field: T, id: string, entity: Partial<Draft<T>>) => {
+const updateEntity = async <T extends Key>(field: T, id: string, entity: Partial<Writable<T>>) => {
   await referenceChecks[field]?.(entity);
 
   const list = await getCatalogField(field);
@@ -76,9 +77,9 @@ export const getCatalog = () => catalog.getValue();
 export const watchCatalog = (callback: (catalog: Catalog) => void) => catalog.watch(callback);
 
 export const addItem = (item: Draft<'items'>) => addEntity('items', item);
-export const updateItem = (id: string, item: Partial<Draft<'items'>>) => updateEntity('items', id, item);
+export const updateItem = (id: string, item: Partial<Writable<'items'>>) => updateEntity('items', id, item);
 export const deleteItem = (id: string) => deleteEntity('items', id);
 
-export const addCategory = (category: Draft<'categories'>) => addEntity('categories', category);
-export const updateCategory = (id: string, category: Partial<Draft<'categories'>>) => updateEntity('categories', id, category);
+export const addCategory = (cat: Draft<'categories'>) => addEntity('categories', cat);
+export const updateCategory = (id: string, cat: Partial<Writable<'categories'>>) => updateEntity('categories', id, cat);
 export const deleteCategory = (id: string) => deleteEntity('categories', id);
