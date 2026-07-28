@@ -5,13 +5,13 @@ import type { CaretRect } from '../../utils/inputBox';
 
 type FlowPhase =
   | { kind: 'idle' }
-  | { kind: 'suggestion'; query: string; caretPosition: CaretRect | null }
+  | { kind: 'suggestion'; query: string; caretRect: CaretRect | null }
   | { kind: 'confirming'; prompt: Item; values: Record<string, unknown> }
   | { kind: 'injecting'; text: string };
 
 export interface FlowSlice {
   phase: FlowPhase;
-  updateSuggestion: (query: string, caretPosition: CaretRect | null) => void;
+  updateSuggestion: (query: string, caretRect: CaretRect | null) => void;
   chooseItem: (prompt: Item) => void;
   setVariableValue: (variableName: string, value: unknown) => void;
   confirm: () => void;
@@ -30,7 +30,7 @@ export const createFlowSlice: StateCreator<FlowSlice> = (set) => {
 
   return {
     phase: { kind: 'idle' },
-    updateSuggestion: (query, caretPosition) => set({ phase: { kind: 'suggestion', query, caretPosition } }),
+    updateSuggestion: (query, caretRect) => set({ phase: { kind: 'suggestion', query, caretRect } }),
     chooseItem: (prompt) => guard('suggestion', (_) => hasVariables(prompt.content)
       ? { kind: 'confirming', prompt, values: {} }
       : { kind: 'injecting', text: prompt.content }),

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
+import { useState, useEffect, useMemo } from 'preact/hooks';
 import { useShallow } from 'zustand/shallow';
 import { useCatalog, useKeyBind } from '@/hooks';
 import { useContentStore } from '../stores/useContentStore';
@@ -36,8 +36,8 @@ export default function Suggest() {
   useKeyBind({ key: 'Tab', onKeyDown: () => focusedId && onSelect(flatItems[focusedIndex]) });
   useKeyBind({ key: 'Escape', onKeyDown: () => resetFlow() });
 
-  if (phase.kind !== 'suggestion' || !phase.caretPosition || groups.length === 0) return null;
-  const caretPos = phase.caretPosition;
+  if (phase.kind !== 'suggestion' || !phase.caretRect || groups.length === 0) return null;
+  const caretPos = phase.caretRect;
 
   return (
     <div className="pointer-events-auto fixed" style={{ top: caretPos.top + caretPos.height, left: caretPos.left }}>
