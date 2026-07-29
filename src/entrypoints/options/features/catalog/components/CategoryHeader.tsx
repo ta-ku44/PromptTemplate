@@ -1,21 +1,29 @@
+import { memo } from 'react';
 import { useSortable } from '@dnd-kit/react/sortable';
 import * as m from 'motion/react-m';
+import { ItemBar } from './ItemBar';
 import { updateCategory, deleteCategory } from '@/utils/storage';
-import type { Category, Item } from '@/types/catalog';
+import { useCatalogStore } from '../stores/useCatalogStore';
+
+const EmptyCategorySlot = () => {
+
+}
 
 type CategoryHeaderProps = {
-  category: Category;
+  categoryId: string;
   index: number;
-  items?: Item[];
-  onEditItem?: (item: Item) => void;
+  onEditItem: (itemId: string) => void;
+  onAddItem: (categoryId: string) => void;
 };
 
-export const CategoryHeader = ({ category, index, items, onEditItem }: CategoryHeaderProps) => {
-  const { ref, handleRef, isDragging } = useSortable({ id: category.id, index, type: 'category' });
+export const CategoryHeader = memo(({ categoryId, index, onEditItem, onAddItem }: CategoryHeaderProps) => {
+  const { ref, handleRef, isDragging } = useSortable({ id: categoryId, index, type: 'category' });
+  const category = useCatalogStore((state) => state.categories[categoryId]);
+  const itemIds = useCatalogStore((state) => state.itemIdsByCategory[categoryId]);
 
   return (
     <m.div ref={ref} layout={true}>
 
     </m.div>
   )
-};
+});
