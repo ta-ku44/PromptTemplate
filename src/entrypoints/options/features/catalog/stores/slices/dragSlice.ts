@@ -2,7 +2,7 @@ import type { StateCreator } from 'zustand';
 import type { ExpandSlice } from './expandSlice';
 import type { EntitySlice } from './entitySlice';
 
-type DragType = 'item' | 'category';
+type DragType = 'item' | 'category' | 'category-slot';
 type Edge = 'top' | 'bottom' | null;
 
 export interface DragSlice {
