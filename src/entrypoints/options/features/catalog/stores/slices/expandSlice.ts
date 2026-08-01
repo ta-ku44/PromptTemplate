@@ -4,6 +4,7 @@ import type { EntitySlice } from './entitySlice';
 
 export interface ExpandSlice {
   expandedIds: Set<string>;
+
   toggleExpand: (id: string) => void;
   collapse: (id: string) => void;
   expand: (id: string) => void;
@@ -11,6 +12,7 @@ export interface ExpandSlice {
 
 export const createExpandSlice: StateCreator<ExpandSlice & DragSlice & EntitySlice, [], [], ExpandSlice> = (set) => ({
   expandedIds: new Set(),
+
   toggleExpand: (id) => set((state) => {
     const next = new Set(state.expandedIds);
     next.has(id) ? next.delete(id) : next.add(id);
