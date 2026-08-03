@@ -19,6 +19,7 @@
     "@wxt-dev/storage": "^1.2.7",
     "caret-pos": "^2.0.0",
     "fractional-indexing": "^3.2.0",
+    "lucide-react": "^1.28.0",
     "motion": "^12.42.2",
     "nanoid": "^5.1.7",
     "preact": "^10.28.4",

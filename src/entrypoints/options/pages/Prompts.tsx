@@ -4,7 +4,7 @@ const CatalogBoard = lazy(() => import('../features/catalog'));
 
 export default function Prompts() {
   return (
-    <div>
+    <div className='mx-auto'>
       <h1>Prompts</h1>
       <CatalogBoard />
     </div>

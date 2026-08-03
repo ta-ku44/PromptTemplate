@@ -4,6 +4,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
 
   --color-border: var(--border);
@@ -19,6 +20,7 @@
 :root {
   --background: #f7f4ef;
   --foreground: #1f2328;
+  --muted: #f3f4f6;
   --muted-foreground: #71717a;
 
   --border: #d3dae0;

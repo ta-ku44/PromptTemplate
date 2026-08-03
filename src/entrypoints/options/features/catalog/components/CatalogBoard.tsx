@@ -74,9 +74,11 @@ export const CatalogBoard = () => {
   return (
     <LazyMotion features={loadFeatures}>
       <DragDropProvider onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        {categoryIds.map((c, i) => (
-          <CategorySection key={c} categoryId={c} index={i} onEditItem={handleEditItem} onAddItem={handleAddItem} />
-        ))}
+        <div className="max-w-2xl mx-auto flex flex-col gap-2.5">
+          {categoryIds.map((c, i) => (
+            <CategorySection key={c} categoryId={c} index={i} onEditItem={handleEditItem} onAddItem={handleAddItem} />
+          ))}
+        </div>
         <DragOverlay>
           {(source) => {
             const data = source.data as { name: string } | undefined;
