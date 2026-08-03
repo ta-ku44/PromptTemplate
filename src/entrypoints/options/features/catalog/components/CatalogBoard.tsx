@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useShallow } from 'zustand/shallow';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import { LazyMotion } from 'motion/react';
-import { useShallow } from 'zustand/shallow';
-import { CategoryHeader } from './CategoryHeader';
+import { CategorySection } from './CategorySection';
 import { useCatalog } from '@/hooks';
 import { useCatalogStore } from '../stores/useCatalogStore';
 import { insertIndex, keyForInsertion } from '../libs/reorder';
@@ -74,14 +74,8 @@ export const CatalogBoard = () => {
   return (
     <LazyMotion features={loadFeatures}>
       <DragDropProvider onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        {categoryIds.map((categoryId, index) => (
-          <CategoryHeader
-            key={categoryId}
-            categoryId={categoryId}
-            index={index}
-            onEditItem={handleEditItem}
-            onAddItem={handleAddItem}
-          />
+        {categoryIds.map((c, i) => (
+          <CategorySection key={c} categoryId={c} index={i} onEditItem={handleEditItem} onAddItem={handleAddItem} />
         ))}
         <DragOverlay>
           {(source) => {
