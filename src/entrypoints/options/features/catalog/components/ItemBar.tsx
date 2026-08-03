@@ -1,8 +1,6 @@
 import { memo, useRef } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/react';
 import * as m from 'motion/react-m';
-import { useShallow } from 'zustand/shallow';
-import { updateItem, deleteItem } from '@/utils/storage';
 import { useCatalogStore } from '../stores/useCatalogStore';
 
 type ItemBarProps = {
@@ -11,15 +9,16 @@ type ItemBarProps = {
 };
 
 export const ItemBar = memo(({ itemId, onEditRequest }: ItemBarProps) => {
-  const elementRef = useRef<HTMLDivElement>(null);
-  useDraggable({ id: itemId, type: 'item', element: elementRef });
+  const elementRef = useRef<HTMLLIElement>(null);
+  const item = useCatalogStore((state) => state.items[itemId]);
+  useDraggable({ id: itemId, type: 'item', element: elementRef, data: item });
   useDroppable({ id: itemId, type: 'item', element: elementRef });
 
-  const item = useCatalogStore((state) => state.items[itemId]);
-
   return (
-    <m.div ref={elementRef} layout={true}>
-      <></>
-    </m.div>
+    <m.li ref={elementRef} layout={true}>
+      <button type="button" onClick={() => onEditRequest(itemId)}>
+        {item.name}
+      </button>
+    </m.li>
   );
 });

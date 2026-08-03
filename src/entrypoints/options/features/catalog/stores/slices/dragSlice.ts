@@ -1,9 +1,9 @@
 import type { StateCreator } from 'zustand';
 import type { ExpandSlice } from './expandSlice';
 import type { EntitySlice } from './entitySlice';
+import type { Edge } from '../../libs/reorder';
 
 type DragType = 'item' | 'category' | 'category-slot';
-type Edge = 'top' | 'bottom' | null;
 
 export interface DragSlice {
   activeId: string | null;

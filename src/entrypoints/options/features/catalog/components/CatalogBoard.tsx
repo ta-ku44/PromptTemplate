@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
-import type { DragDropEvents } from '@dnd-kit/react';
 import { LazyMotion } from 'motion/react';
 import { useShallow } from 'zustand/shallow';
 import { CategoryHeader } from './CategoryHeader';
 import { useCatalog } from '@/hooks';
 import { useCatalogStore } from '../stores/useCatalogStore';
-import { generateKeyBetween } from 'fractional-indexing';
+import { insertIndex, keyForInsertion } from '../libs/reorder';
 import { updateItem, updateCategory } from '@/utils/storage';
+import type { DragDropEvents } from '@dnd-kit/react';
 import type { EditTarget } from './PromptEditModal';
 
 const loadFeatures = () => import('../features').then((res) => res.default);
@@ -24,13 +24,12 @@ export const CatalogBoard = () => {
     })),
   );
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
+  const handleAddItem = useCallback((categoryId: string) => setEditTarget({ mode: 'create', categoryId }), []);
+  const handleEditItem = useCallback((itemId: string) => setEditTarget({ mode: 'edit', itemId }), []);
 
   useEffect(() => {
     syncCatalog(catalog);
   }, [catalog, syncCatalog]);
-
-  const handleAddItem = useCallback((categoryId: string) => setEditTarget({ mode: 'create', categoryId }), []);
-  const handleEditItem = useCallback((itemId: string) => setEditTarget({ mode: 'edit', itemId }), []);
 
   const handleDragStart = (event: Parameters<DragDropEvents['dragstart']>[0]) => {
     const { source } = event.operation;
@@ -49,14 +48,47 @@ export const CatalogBoard = () => {
   };
 
   const handleDragEnd = (event: Parameters<DragDropEvents['dragend']>[0]) => {
+    const { activeId, activeType, overId, overType, edge, categories, items, itemIdsByCategory } =
+      useCatalogStore.getState();
     endDrag(event.canceled);
-    // TODO: 並び替え後のfractionalIndex計算・updateItem/updateCategoryを実装
+    if (event.canceled || !activeId || !overId) return;
+
+    if (activeType === 'category' && overType === 'category') {
+      const siblingIds = categoryIds.filter((id) => id !== activeId);
+      const fractionalIndex = keyForInsertion(siblingIds, categories, insertIndex(siblingIds, overId, edge));
+      updateCategory(activeId, { fractionalIndex });
+      return;
+    }
+
+    if (activeType === 'item') {
+      const targetCategoryId = overType === 'item' ? items[overId]?.categoryId : overId;
+      if (!targetCategoryId) return;
+
+      const siblingIds = (itemIdsByCategory[targetCategoryId] ?? []).filter((id) => id !== activeId);
+      const index = overType === 'item' ? insertIndex(siblingIds, overId, edge) : 0;
+      const fractionalIndex = keyForInsertion(siblingIds, items, index);
+      updateItem(activeId, { categoryId: targetCategoryId, fractionalIndex });
+    }
   };
 
   return (
     <LazyMotion features={loadFeatures}>
       <DragDropProvider onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <></>
+        {categoryIds.map((categoryId, index) => (
+          <CategoryHeader
+            key={categoryId}
+            categoryId={categoryId}
+            index={index}
+            onEditItem={handleEditItem}
+            onAddItem={handleAddItem}
+          />
+        ))}
+        <DragOverlay>
+          {(source) => {
+            const data = source.data as { name: string } | undefined;
+            return data ? <div>{data.name}</div> : null;
+          }}
+        </DragOverlay>
       </DragDropProvider>
     </LazyMotion>
   );
