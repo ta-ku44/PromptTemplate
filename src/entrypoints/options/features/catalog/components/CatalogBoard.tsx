@@ -7,7 +7,7 @@ import { useCatalog } from '@/hooks';
 import { useCatalogStore } from '../stores/useCatalogStore';
 import { insertIndex, keyForInsertion } from '../libs/reorder';
 import { updateItem, updateCategory } from '@/utils/storage';
-import type { DragDropEvents } from '@dnd-kit/react';
+import type { DragStartEvent, DragOverEvent, DragEndEvent } from '@dnd-kit/react';
 import type { EditTarget } from './PromptEditModal';
 
 const loadFeatures = () => import('../features').then((res) => res.default);
@@ -31,13 +31,13 @@ export const CatalogBoard = () => {
     syncCatalog(catalog);
   }, [catalog, syncCatalog]);
 
-  const handleDragStart = (event: Parameters<DragDropEvents['dragstart']>[0]) => {
+  const handleDragStart = (event: DragStartEvent) => {
     const { source } = event.operation;
     if (!source) return;
     startDrag(String(source.id), source.type as 'item' | 'category');
   };
 
-  const handleDragOver = (event: Parameters<DragDropEvents['dragover']>[0]) => {
+  const handleDragOver = (event: DragOverEvent) => {
     const { target, position } = event.operation;
     if (!target || !target.shape) {
       setOver(null, null, null);
@@ -47,7 +47,7 @@ export const CatalogBoard = () => {
     setOver(String(target.id), target.type as 'item' | 'category' | 'category-slot', edge);
   };
 
-  const handleDragEnd = (event: Parameters<DragDropEvents['dragend']>[0]) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { activeId, activeType, overId, overType, edge, categories, items, itemIdsByCategory } =
       useCatalogStore.getState();
     endDrag(event.canceled);
@@ -74,7 +74,7 @@ export const CatalogBoard = () => {
   return (
     <LazyMotion features={loadFeatures}>
       <DragDropProvider onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <div className="max-w-2xl mx-auto flex flex-col gap-2.5">
+        <div className="mx-auto flex max-w-2xl flex-col gap-2.5">
           {categoryIds.map((c, i) => (
             <CategorySection key={c} categoryId={c} index={i} onEditItem={handleEditItem} onAddItem={handleAddItem} />
           ))}

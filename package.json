@@ -15,7 +15,8 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
-    "@dnd-kit/react": "^0.3.2",
+    "@dnd-kit/dom": "^0.5.0",
+    "@dnd-kit/react": "^0.5.0",
     "@wxt-dev/storage": "^1.2.7",
     "caret-pos": "^2.0.0",
     "fractional-indexing": "^3.2.0",

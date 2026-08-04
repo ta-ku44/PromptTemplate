@@ -17,9 +17,9 @@ export const ItemBar = memo(({ itemId, onEditRequest }: ItemBarProps) => {
 
   return (
     <m.li ref={elementRef} layout={true} className="flex items-center gap-2 rounded-md border bg-card p-3">
-      <GripVertical ref={handleRef} size={18} />
+      <GripVertical ref={handleRef} size={18} className="cursor-grab active:cursor-grabbing" />
       <span>{item.name}</span>
-      <div className="ml-auto flex gap-3 mr-1.5">
+      <div className="mr-1.5 ml-auto flex gap-3">
         <button onClick={() => onEditRequest(itemId)}>
           <Pencil size={16} />
         </button>

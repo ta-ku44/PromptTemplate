@@ -3,7 +3,7 @@ import type { DragSlice } from './dragSlice';
 import type { EntitySlice } from './entitySlice';
 
 export interface ExpandSlice {
-  expandedIds: Set<string>;
+  collapsedIds: Set<string>;
 
   toggleExpand: (id: string) => void;
   collapse: (id: string) => void;
@@ -11,17 +11,17 @@ export interface ExpandSlice {
 }
 
 export const createExpandSlice: StateCreator<ExpandSlice & DragSlice & EntitySlice, [], [], ExpandSlice> = (set) => ({
-  expandedIds: new Set(),
+  collapsedIds: new Set(),
 
   toggleExpand: (id) => set((state) => {
-    const next = new Set(state.expandedIds);
+    const next = new Set(state.collapsedIds);
     next.has(id) ? next.delete(id) : next.add(id);
-    return { expandedIds: next };
+    return { collapsedIds: next };
   }),
-  collapse: (id) => set((state) => {
-    const next = new Set(state.expandedIds);
+  collapse: (id) => set((state) => ({ collapsedIds: new Set(state.collapsedIds).add(id) })),
+  expand: (id) => set((state) => {
+    const next = new Set(state.collapsedIds);
     next.delete(id);
-    return { expandedIds: next };
+    return { collapsedIds: next };
   }),
-  expand: (id) => set((state) => ({ expandedIds: new Set(state.expandedIds).add(id) })),
 });

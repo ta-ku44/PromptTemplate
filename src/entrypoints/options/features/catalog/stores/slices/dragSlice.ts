@@ -27,7 +27,7 @@ export const createDragSlice: StateCreator<ExpandSlice & DragSlice & EntitySlice
   wasExpandedBeforeDrag: false,
 
   startDrag: (id, type) => {
-    const wasExpanded = get().expandedIds.has(id);
+    const wasExpanded = !get().collapsedIds.has(id);
     if (type === 'category') get().collapse(id);
     set({ activeId: id, activeType: type, wasExpandedBeforeDrag: wasExpanded });
   },
