@@ -1,9 +1,10 @@
 import { storage, getAppConfig } from '#imports';
 import { nanoid } from 'nanoid';
 import { generateKeyBetween, sortByFractionalIndex } from '@/utils/fractionalIndex';
+import { seed } from '@/utils/seedCatalog';
 import { Catalog } from '@/types/catalog';
 
-const catalog = storage.defineItem<Catalog>('local:catalog', { init: () => getAppConfig().catalog, version: 1 });
+const catalog = storage.defineItem<Catalog>('local:catalog', { init: () => seed(getAppConfig().catalog), version: 1 });
 
 type Key = keyof Catalog;
 type Entity = { id: string; fractionalIndex: string };

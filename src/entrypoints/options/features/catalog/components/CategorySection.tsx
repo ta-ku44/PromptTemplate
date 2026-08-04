@@ -1,9 +1,8 @@
-import { memo, useMemo, useRef } from 'react';
+import { memo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useSortable } from '@dnd-kit/react/sortable';
-import { useDroppable, PointerSensor } from '@dnd-kit/react';
-import { PointerActivationConstraints } from '@dnd-kit/dom';
-import { AnimatePresence } from 'motion/react';
+import { useDroppable } from '@dnd-kit/react';
+import { PointerSensor, PointerActivationConstraints } from '@dnd-kit/dom';
 import type { Transition, TargetAndTransition } from 'motion/react';
 import * as m from 'motion/react-m';
 import { ChevronDown, Trash2, Plus } from 'lucide-react';
@@ -14,7 +13,14 @@ const COLLAPSED: TargetAndTransition = { height: 0, opacity: 0 };
 const EXPANDED: TargetAndTransition = { height: 'auto', opacity: 1 };
 const COLLAPSE_TRANSITION: Transition = { duration: 0.2, ease: 'easeInOut' };
 
-type DelayConstraint = InstanceType<typeof PointerActivationConstraints.Delay>;
+const SENSORS = [
+  PointerSensor.configure({
+    activationConstraints: [
+      new PointerActivationConstraints.Distance({ value: 5 }),
+      new PointerActivationConstraints.Delay({ value: 200, tolerance: 10 }),
+    ],
+  }),
+];
 
 const EmptyCategorySlot = ({ categoryId }: { categoryId: string }) => {
   const { ref, isDropTarget } = useDroppable({ id: categoryId, type: 'category-slot', collisionPriority: 1 });
@@ -30,7 +36,6 @@ type CategorySectionProps = {
 };
 
 export const CategorySection = memo(({ categoryId, index, onEditItem, onAddItem }: CategorySectionProps) => {
-  const pendingActivationRef = useRef<DelayConstraint | null>(null);
   const { category, itemIds, isExpanded, toggleExpand } = useCatalogStore(
     useShallow((state) => ({
       category: state.categories[categoryId],
@@ -39,30 +44,13 @@ export const CategorySection = memo(({ categoryId, index, onEditItem, onAddItem 
       toggleExpand: state.toggleExpand,
     })),
   );
-  // header自体がドラッグハンドルなので、handle上のクリックで制約(delay/distance)を
-  // スキップするdnd-kitの既定挙動を上書きし、トグルクリックが誤ってドラッグ扱いされないようにする。
-  // TODO: それでも稀に、トグル操作の後などにheaderの長押しドラッグが起動しないことがある
-  // (activationConstraints自体が呼ばれない = dnd-kit内部のどこかで弾かれている、原因未特定)。
-  const sensors = useMemo(
-    () => [
-      PointerSensor.configure({
-        activationConstraints: () => {
-          const constraint = new PointerActivationConstraints.Delay({ value: 150, tolerance: 10 });
-          pendingActivationRef.current = constraint;
-          return [constraint];
-        },
-      }),
-    ],
-    [],
-  );
-  const { ref, handleRef } = useSortable({ id: categoryId, index, type: 'category', data: category, sensors });
+  const { ref, handleRef } = useSortable({ id: categoryId, index, type: 'category', data: category, sensors: SENSORS });
 
   return (
     <m.section ref={ref} layout={true} className="flex flex-col overflow-hidden rounded-md border bg-muted">
       <header
         ref={handleRef}
         onClick={() => toggleExpand(categoryId)}
-        onPointerUp={() => pendingActivationRef.current?.abort()}
         className={`flex cursor-grab items-center gap-2 border-b p-3 transition-colors duration-200 active:cursor-grabbing ${isExpanded ? 'border-border' : 'border-transparent'}`}
       >
         <ChevronDown
@@ -77,28 +65,24 @@ export const CategorySection = memo(({ categoryId, index, onEditItem, onAddItem 
         </button>
       </header>
 
-      <AnimatePresence initial={false}>
-        {isExpanded && (
-          <m.div initial={COLLAPSED} animate={EXPANDED} exit={COLLAPSED} transition={COLLAPSE_TRANSITION}>
-            <div className="flex flex-col gap-2.5 px-3 py-2.5">
-              <ul className="flex flex-col gap-1">
-                {itemIds.length > 0 ? (
-                  itemIds.map((i) => <ItemBar key={i} itemId={i} onEditRequest={onEditItem} />)
-                ) : (
-                  <EmptyCategorySlot categoryId={categoryId} />
-                )}
-              </ul>
-              <button
-                onClick={() => onAddItem(categoryId)}
-                className="flex items-center justify-center gap-1 rounded-md border border-dashed p-2 text-sm text-muted-foreground"
-              >
-                <Plus size={14} />
-                <span>テンプレートの追加</span>
-              </button>
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
+      <m.div animate={isExpanded ? EXPANDED : COLLAPSED} transition={COLLAPSE_TRANSITION} className="overflow-hidden">
+        <div className="flex flex-col gap-2.5 px-3 py-2.5">
+          <ul className="flex flex-col gap-1">
+            {itemIds.length > 0 ? (
+              itemIds.map((i) => <ItemBar key={i} itemId={i} onEditRequest={onEditItem} />)
+            ) : (
+              <EmptyCategorySlot categoryId={categoryId} />
+            )}
+          </ul>
+          <button
+            onClick={() => onAddItem(categoryId)}
+            className="flex items-center justify-center gap-1 rounded-md border border-dashed p-2 text-sm text-muted-foreground"
+          >
+            <Plus size={14} />
+            <span>テンプレートの追加</span>
+          </button>
+        </div>
+      </m.div>
     </m.section>
   );
 });
