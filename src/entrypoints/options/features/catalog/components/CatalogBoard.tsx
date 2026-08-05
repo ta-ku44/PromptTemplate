@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
+import type { DragStartEvent, DragOverEvent, DragEndEvent } from '@dnd-kit/react';
 import { LazyMotion } from 'motion/react';
-import { CategorySection } from './CategorySection';
 import { useCatalog } from '@/hooks';
+import { updateItem, updateCategory } from '@/utils/storage';
+import { CategorySection } from './CategorySection';
 import { useCatalogStore } from '../stores/useCatalogStore';
 import { insertIndex, keyForInsertion } from '../libs/reorder';
-import { updateItem, updateCategory } from '@/utils/storage';
-import type { DragStartEvent, DragOverEvent, DragEndEvent } from '@dnd-kit/react';
 import type { EditTarget } from './PromptEditModal';
 
 const loadFeatures = () => import('../features').then((res) => res.default);

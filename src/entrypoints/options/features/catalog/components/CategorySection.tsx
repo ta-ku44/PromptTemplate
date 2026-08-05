@@ -1,10 +1,10 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { useDroppable } from '@dnd-kit/react';
 import { PointerSensor, PointerActivationConstraints } from '@dnd-kit/dom';
-import type { Transition, TargetAndTransition } from 'motion/react';
 import * as m from 'motion/react-m';
+import type { Transition, TargetAndTransition } from 'motion/react';
 import { ChevronDown, Trash2, Plus } from 'lucide-react';
 import { ItemBar } from './ItemBar';
 import { useCatalogStore } from '../stores/useCatalogStore';
@@ -36,36 +36,34 @@ type CategorySectionProps = {
 };
 
 export const CategorySection = memo(({ categoryId, index, onEditItem, onAddItem }: CategorySectionProps) => {
-  const wasDroppingRef = useRef(false);
-  const { category, itemIds, isExpanded, toggleExpand, pendingExpandId, settleExpand } = useCatalogStore(
+  const { category, itemIds, isExpanded, toggleExpand } = useCatalogStore(
     useShallow((state) => ({
       category: state.categories[categoryId],
       itemIds: state.itemIdsByCategory[categoryId],
       isExpanded: !state.collapsedIds.has(categoryId),
       toggleExpand: state.toggleExpand,
-      pendingExpandId: state.pendingExpandId,
-      settleExpand: state.settleExpand,
     })),
   );
-  const { ref, handleRef, isDropping } = useSortable({ id: categoryId, index, type: 'category', data: category, sensors: SENSORS });
+  const { ref, handleRef, isDragSource, isDropping } = useSortable({
+    id: categoryId,
+    index,
+    type: 'category',
+    data: category,
+    sensors: SENSORS,
+  });
 
-  useEffect(() => {
-    if (wasDroppingRef.current && !isDropping && pendingExpandId === categoryId) {
-      settleExpand(categoryId);
-    }
-    wasDroppingRef.current = isDropping;
-  }, [isDropping, categoryId, pendingExpandId, settleExpand]);
+  const expandedNow = isExpanded && !isDragSource && !isDropping;
 
   return (
     <m.section ref={ref} className="flex flex-col overflow-hidden rounded-md border bg-muted">
       <header
         ref={handleRef}
         onClick={() => toggleExpand(categoryId)}
-        className={`flex cursor-grab items-center gap-2 border-b p-3 transition-colors duration-200 active:cursor-grabbing ${isExpanded ? 'border-border' : 'border-transparent'}`}
+        className={`flex cursor-grab items-center gap-2 border-b p-3 transition-colors duration-200 active:cursor-grabbing ${expandedNow ? 'border-border' : 'border-transparent'}`}
       >
         <ChevronDown
           size={16}
-          className={`transition-transform duration-200 ${isExpanded ? 'rotate-0' : '-rotate-90'}`}
+          className={`transition-transform duration-200 ${expandedNow ? 'rotate-0' : '-rotate-90'}`}
         />
         <span onDoubleClick={() => {}} className="shrink-0 cursor-text">
           {category.name}
@@ -75,7 +73,7 @@ export const CategorySection = memo(({ categoryId, index, onEditItem, onAddItem 
         </button>
       </header>
 
-      <m.div animate={isExpanded ? EXPANDED : COLLAPSED} transition={COLLAPSE_TRANSITION} className="overflow-hidden">
+      <m.div animate={expandedNow ? EXPANDED : COLLAPSED} transition={COLLAPSE_TRANSITION} className="overflow-hidden">
         <div className="flex flex-col gap-2.5 px-3 py-2.5">
           <ul className="flex flex-col gap-1">
             {itemIds.length > 0 ? (
