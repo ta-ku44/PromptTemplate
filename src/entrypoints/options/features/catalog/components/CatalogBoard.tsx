@@ -48,9 +48,8 @@ export const CatalogBoard = () => {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { activeId, activeType, overId, overType, edge, categories, items, itemIdsByCategory } =
-      useCatalogStore.getState();
-    endDrag(event.canceled);
+    const { activeId, activeType, overId, overType, edge, categories, items, itemIdsByCategory } = useCatalogStore.getState();
+    endDrag();
     if (event.canceled || !activeId || !overId) return;
 
     if (activeType === 'category' && overType === 'category') {

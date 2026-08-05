@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { useDroppable } from '@dnd-kit/react';
@@ -36,18 +36,28 @@ type CategorySectionProps = {
 };
 
 export const CategorySection = memo(({ categoryId, index, onEditItem, onAddItem }: CategorySectionProps) => {
-  const { category, itemIds, isExpanded, toggleExpand } = useCatalogStore(
+  const wasDroppingRef = useRef(false);
+  const { category, itemIds, isExpanded, toggleExpand, pendingExpandId, settleExpand } = useCatalogStore(
     useShallow((state) => ({
       category: state.categories[categoryId],
       itemIds: state.itemIdsByCategory[categoryId],
       isExpanded: !state.collapsedIds.has(categoryId),
       toggleExpand: state.toggleExpand,
+      pendingExpandId: state.pendingExpandId,
+      settleExpand: state.settleExpand,
     })),
   );
-  const { ref, handleRef } = useSortable({ id: categoryId, index, type: 'category', data: category, sensors: SENSORS });
+  const { ref, handleRef, isDropping } = useSortable({ id: categoryId, index, type: 'category', data: category, sensors: SENSORS });
+
+  useEffect(() => {
+    if (wasDroppingRef.current && !isDropping && pendingExpandId === categoryId) {
+      settleExpand(categoryId);
+    }
+    wasDroppingRef.current = isDropping;
+  }, [isDropping, categoryId, pendingExpandId, settleExpand]);
 
   return (
-    <m.section ref={ref} layout={true} className="flex flex-col overflow-hidden rounded-md border bg-muted">
+    <m.section ref={ref} className="flex flex-col overflow-hidden rounded-md border bg-muted">
       <header
         ref={handleRef}
         onClick={() => toggleExpand(categoryId)}
@@ -57,10 +67,10 @@ export const CategorySection = memo(({ categoryId, index, onEditItem, onAddItem 
           size={16}
           className={`transition-transform duration-200 ${isExpanded ? 'rotate-0' : '-rotate-90'}`}
         />
-        <span className="cursor-text" onPointerDown={(e) => e.stopPropagation()}>
+        <span onDoubleClick={() => {}} className="shrink-0 cursor-text">
           {category.name}
         </span>
-        <button onClick={(e) => e.stopPropagation()} className="mr-1.5 ml-auto">
+        <button className="mr-1.5 ml-auto">
           <Trash2 size={16} />
         </button>
       </header>

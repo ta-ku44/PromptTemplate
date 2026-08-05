@@ -11,11 +11,12 @@ export interface DragSlice {
   overId: string | null;
   overType: DragType | null;
   edge: Edge;
-  wasExpandedBeforeDrag: boolean;
+  pendingExpandId: string | null;
 
   startDrag: (id: string, type: DragType) => void;
   setOver: (id: string | null, type: DragType | null, edge: Edge) => void;
-  endDrag: (cancelled: boolean) => void;
+  endDrag: () => void;
+  settleExpand: (id: string) => void;
 }
 
 export const createDragSlice: StateCreator<ExpandSlice & DragSlice & EntitySlice, [], [], DragSlice> = (set, get) => ({
@@ -24,17 +25,19 @@ export const createDragSlice: StateCreator<ExpandSlice & DragSlice & EntitySlice
   overId: null,
   overType: null,
   edge: null,
-  wasExpandedBeforeDrag: false,
+  pendingExpandId: null,
 
   startDrag: (id, type) => {
     const wasExpanded = !get().collapsedIds.has(id);
     if (type === 'category') get().collapse(id);
-    set({ activeId: id, activeType: type, wasExpandedBeforeDrag: wasExpanded });
+    set({ activeId: id, activeType: type, pendingExpandId: type === 'category' && wasExpanded ? id : null });
   },
   setOver: (overId, overType, edge) => set({ overId, overType, edge }),
-  endDrag: (cancelled) => {
-    const { activeId, activeType, wasExpandedBeforeDrag, expand } = get();
-    if (cancelled && activeType === 'category' && activeId && wasExpandedBeforeDrag) expand(activeId);
-    set({ activeId: null, activeType: null, overId: null, overType: null, edge: null });
-  },
+  endDrag: () => set({ activeId: null, activeType: null, overId: null, overType: null, edge: null }),
+  settleExpand: (id) => set((state) => {
+    if (state.pendingExpandId !== id) return {};
+    const next = new Set(state.collapsedIds);
+    next.delete(id);
+    return { collapsedIds: next, pendingExpandId: null };
+  }),
 });

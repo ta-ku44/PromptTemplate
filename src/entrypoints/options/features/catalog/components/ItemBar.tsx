@@ -12,11 +12,15 @@ type ItemBarProps = {
 export const ItemBar = memo(({ itemId, onEditRequest }: ItemBarProps) => {
   const elementRef = useRef<HTMLLIElement>(null);
   const item = useCatalogStore((state) => state.items[itemId]);
-  const { handleRef } = useDraggable({ id: itemId, type: 'item', element: elementRef, data: item });
+  const { handleRef, isDragSource } = useDraggable({ id: itemId, type: 'item', element: elementRef, data: item });
   useDroppable({ id: itemId, type: 'item', element: elementRef });
 
   return (
-    <m.li ref={elementRef} layout={true} className="flex items-center gap-2 rounded-md border bg-card p-3">
+    <m.li
+      ref={elementRef}
+      layout={true}
+      className={`flex items-center gap-2 rounded-md border bg-card p-3 transition-opacity duration-200 ${isDragSource ? 'opacity-40' : ''}`}
+    >
       <GripVertical ref={handleRef} size={18} className="cursor-grab active:cursor-grabbing" />
       <span>{item.name}</span>
       <div className="mr-1.5 ml-auto flex gap-3">
