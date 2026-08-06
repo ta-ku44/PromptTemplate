@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import type { DragStartEvent, DragOverEvent, DragEndEvent } from '@dnd-kit/react';
+import { RestrictToVerticalAxis } from '@dnd-kit/abstract/modifiers';
 import { LazyMotion } from 'motion/react';
+import { ChevronDown } from 'lucide-react';
 import { useCatalog } from '@/hooks';
 import { updateItem, updateCategory } from '@/utils/storage';
 import { CategorySection } from './CategorySection';
@@ -31,13 +33,13 @@ export const CatalogBoard = () => {
     syncCatalog(catalog);
   }, [catalog, syncCatalog]);
 
-  const handleDragStart = (event: DragStartEvent) => {
+  const dragStart = (event: DragStartEvent) => {
     const { source } = event.operation;
     if (!source) return;
     startDrag(String(source.id), source.type as 'item' | 'category');
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
+  const dragOver = (event: DragOverEvent) => {
     const { target, position } = event.operation;
     if (!target || !target.shape) {
       setOver(null, null, null);
@@ -47,8 +49,9 @@ export const CatalogBoard = () => {
     setOver(String(target.id), target.type as 'item' | 'category' | 'category-slot', edge);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { activeId, activeType, overId, overType, edge, categories, items, itemIdsByCategory } = useCatalogStore.getState();
+  const dragEnd = (event: DragEndEvent) => {
+    const { activeId, activeType, overId, overType, edge, categories, items, itemIdsByCategory } =
+      useCatalogStore.getState();
     endDrag();
     if (event.canceled || !activeId || !overId) return;
 
@@ -72,7 +75,12 @@ export const CatalogBoard = () => {
 
   return (
     <LazyMotion features={loadFeatures}>
-      <DragDropProvider onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+      <DragDropProvider
+        modifiers={[RestrictToVerticalAxis]}
+        onDragStart={dragStart}
+        onDragOver={dragOver}
+        onDragEnd={dragEnd}
+      >
         <div className="mx-auto flex max-w-2xl flex-col gap-2.5">
           {categoryIds.map((c, i) => (
             <CategorySection key={c} categoryId={c} index={i} onEditItem={handleEditItem} onAddItem={handleAddItem} />
@@ -81,7 +89,17 @@ export const CatalogBoard = () => {
         <DragOverlay>
           {(source) => {
             const data = source.data as { name: string } | undefined;
-            return data ? <div>{data.name}</div> : null;
+            if (!data) return null;
+            return source.type === 'category' ? (
+              <div className="flex flex-col overflow-hidden rounded-md border bg-muted">
+                <div className="flex items-center gap-2 border-b border-transparent p-3">
+                  <ChevronDown size={16} className="-rotate-90" />
+                  <span className="shrink-0">{data.name}</span>
+                </div>
+              </div>
+            ) : (
+              <div>{data.name}</div>
+            );
           }}
         </DragOverlay>
       </DragDropProvider>

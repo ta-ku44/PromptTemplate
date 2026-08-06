@@ -13,14 +13,11 @@ const COLLAPSED: TargetAndTransition = { height: 0, opacity: 0 };
 const EXPANDED: TargetAndTransition = { height: 'auto', opacity: 1 };
 const COLLAPSE_TRANSITION: Transition = { duration: 0.2, ease: 'easeInOut' };
 
-const SENSORS = [
-  PointerSensor.configure({
-    activationConstraints: [
-      new PointerActivationConstraints.Distance({ value: 5 }),
-      new PointerActivationConstraints.Delay({ value: 200, tolerance: 10 }),
-    ],
-  }),
-];
+const ALIGNMENT = { x: 'start', y: 'start' } as const;
+const SENSORS = [PointerSensor.configure({activationConstraints: [
+  new PointerActivationConstraints.Distance({ value: 5 }),
+  new PointerActivationConstraints.Delay({ value: 200, tolerance: 10 }),
+]})];
 
 const EmptyCategorySlot = ({ categoryId }: { categoryId: string }) => {
   const { ref, isDropTarget } = useDroppable({ id: categoryId, type: 'category-slot', collisionPriority: 1 });
@@ -45,11 +42,7 @@ export const CategorySection = memo(({ categoryId, index, onEditItem, onAddItem 
     })),
   );
   const { ref, handleRef, isDragSource, isDropping } = useSortable({
-    id: categoryId,
-    index,
-    type: 'category',
-    data: category,
-    sensors: SENSORS,
+    id: categoryId, index, type: 'category', data: category, alignment: ALIGNMENT, sensors: SENSORS, 
   });
 
   const expandedNow = isExpanded && !isDragSource && !isDropping;
