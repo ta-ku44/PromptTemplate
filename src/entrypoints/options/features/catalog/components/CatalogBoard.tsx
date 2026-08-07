@@ -41,12 +41,17 @@ export const CatalogBoard = () => {
 
   const dragOver = (event: DragOverEvent) => {
     const { target, position } = event.operation;
+    const { overId: prevOverId, edge: prevEdge } = useCatalogStore.getState();
+
     if (!target || !target.shape) {
-      setOver(null, null, null);
+      if (prevOverId !== null) setOver(null, null, null);
       return;
     }
+
+    const id = String(target.id);
     const edge = position.current.y < target.shape.center.y ? 'top' : 'bottom';
-    setOver(String(target.id), target.type as 'item' | 'category' | 'category-slot', edge);
+    if (id === prevOverId && edge === prevEdge) return;
+    setOver(id, target.type as 'item' | 'category' | 'category-slot', edge);
   };
 
   const dragEnd = (event: DragEndEvent) => {
@@ -98,7 +103,7 @@ export const CatalogBoard = () => {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 rounded-md border bg-card p-3 shadow-md ring-2 ring-primary">
+              <div className="flex items-center gap-2 rounded-md border bg-card p-3 shadow-md ring-1 ring-primary">
                 <GripVertical size={18} className="text-primary" />
                 <span>{data.name}</span>
               </div>
