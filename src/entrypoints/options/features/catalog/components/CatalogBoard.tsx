@@ -4,7 +4,7 @@ import { DragDropProvider, DragOverlay } from '@dnd-kit/react';
 import type { DragStartEvent, DragOverEvent, DragEndEvent } from '@dnd-kit/react';
 import { RestrictToVerticalAxis } from '@dnd-kit/abstract/modifiers';
 import { LazyMotion } from 'motion/react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, GripVertical } from 'lucide-react';
 import { useCatalog } from '@/hooks';
 import { updateItem, updateCategory } from '@/utils/storage';
 import { CategorySection } from './CategorySection';
@@ -91,14 +91,17 @@ export const CatalogBoard = () => {
             const data = source.data as { name: string } | undefined;
             if (!data) return null;
             return source.type === 'category' ? (
-              <div className="flex flex-col overflow-hidden rounded-md border bg-muted">
+              <div className="flex flex-col overflow-hidden rounded-md border bg-muted shadow-md">
                 <div className="flex items-center gap-2 border-b border-transparent p-3">
                   <ChevronDown size={16} className="-rotate-90" />
                   <span className="shrink-0">{data.name}</span>
                 </div>
               </div>
             ) : (
-              <div>{data.name}</div>
+              <div className="flex items-center gap-2 rounded-md border bg-card p-3 shadow-md ring-2 ring-primary">
+                <GripVertical size={18} className="text-primary" />
+                <span>{data.name}</span>
+              </div>
             );
           }}
         </DragOverlay>

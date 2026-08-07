@@ -7,6 +7,8 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
 
+  --color-primary: var(--primary);
+
   --color-border: var(--border);
   --color-card: var(--card);
 
@@ -22,6 +24,8 @@
   --foreground: #1f2328;
   --muted: #f3f4f6;
   --muted-foreground: #71717a;
+
+  --primary: #5999e8;
 
   --border: #d3dae0;
   --card: #ffffff;

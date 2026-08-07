@@ -42,17 +42,20 @@ export const CategorySection = memo(({ categoryId, index, onEditItem, onAddItem 
     })),
   );
   const { ref, handleRef, isDragSource, isDropping } = useSortable({
-    id: categoryId, index, type: 'category', data: category, alignment: ALIGNMENT, sensors: SENSORS, 
+    id: categoryId, index, type: 'category', data: category, alignment: ALIGNMENT, sensors: SENSORS,
   });
 
   const expandedNow = isExpanded && !isDragSource && !isDropping;
 
   return (
-    <m.section ref={ref} className="flex flex-col overflow-hidden rounded-md border bg-muted">
+    <m.section
+      ref={ref}
+      className={`flex flex-col overflow-hidden rounded-md border ${!isDragSource ? 'bg-muted shadow-md' : 'border-dashed bg-muted/50 *:invisible'}`}
+    >
       <header
         ref={handleRef}
         onClick={() => toggleExpand(categoryId)}
-        className={`flex cursor-grab items-center gap-2 border-b p-3 transition-colors duration-200 active:cursor-grabbing ${expandedNow ? 'border-border' : 'border-transparent'}`}
+        className={`flex cursor-grab items-center gap-2 border-b p-3 transition-colors duration-200 select-none active:cursor-grabbing ${expandedNow ? 'border-border' : 'border-transparent'}`}
       >
         <ChevronDown
           size={16}
@@ -77,7 +80,7 @@ export const CategorySection = memo(({ categoryId, index, onEditItem, onAddItem 
           </ul>
           <button
             onClick={() => onAddItem(categoryId)}
-            className="flex items-center justify-center gap-1 rounded-md border border-dashed p-2 text-sm text-muted-foreground"
+            className="flex items-center justify-center gap-1 rounded-md border border-dashed p-2 text-sm text-muted-foreground transition-colors duration-200 hover:border-primary hover:text-primary"
           >
             <Plus size={14} />
             <span>テンプレートの追加</span>
